@@ -1,137 +1,374 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feedback</title>
-    <style>
-        /* Design Tokens inspirados no Apple HIG */
-        :root {
-            --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            --background: #f5f5f7;
-            --surface: rgba(255, 255, 255, 0.7);
-            --text-primary: #1d1d1f;
-            --text-secondary: #86868b;
-            --accent: #0071e3;
-            --border-radius: 16px;
-            --shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-            /* Curvas de animação Apple (spring-like) */
-            --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
-            --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feedback</title>
+<style>
+    :root {
+        --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+        --bg: #f5f5f7;
+        --surface: rgba(255, 255, 255, 0.55);
+        --surface-strong: rgba(255, 255, 255, 0.75);
+        --border: rgba(255, 255, 255, 0.6);
+        --text: #1d1d1f;
+        --text-2: #86868b;
+        --accent: #0071e3;
+        --accent-hover: #0077ed;
+        --radius: 22px;
+        --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.14);
+        --spring: cubic-bezier(0.32, 0.72, 0, 1);
+        --smooth: cubic-bezier(0.25, 1, 0.5, 1);
+    }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        body {
-            font-family: var(--font-family);
-            background-color: var(--background);
-            color: var(--text-primary);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-            -webkit-font-smoothing: antialiased;
-        }
+    body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 24px;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+    }
 
-        /* Efeito de vidro (Liquid Glass) */
-        .glass-card {
-            background: var(--surface);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow);
-            padding: 40px;
-            width: 100%;
-            max-width: 500px;
-            transition: transform 0.4s var(--ease-spring), box-shadow 0.4s var(--ease-spring);
-        }
+    /* Fundo com blobs de cor (efeito Apple) */
+    body::before, body::after {
+        content: '';
+        position: fixed;
+        border-radius: 50%;
+        filter: blur(100px);
+        opacity: 0.5;
+        z-index: -1;
+        animation: float 20s ease-in-out infinite;
+    }
+    body::before {
+        width: 500px; height: 500px;
+        background: radial-gradient(circle, #a5c8ff 0%, transparent 70%);
+        top: -150px; left: -150px;
+    }
+    body::after {
+        width: 600px; height: 600px;
+        background: radial-gradient(circle, #ffb8d9 0%, transparent 70%);
+        bottom: -200px; right: -200px;
+        animation-delay: -10s;
+    }
 
-        .glass-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-        }
+    @keyframes float {
+        0%, 100% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(30px, -30px) scale(1.1); }
+    }
 
-        h1 {
-            font-size: 28px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            letter-spacing: -0.5px;
-        }
+    .app {
+        width: 100%;
+        max-width: 560px;
+        position: relative;
+    }
 
-        p.subtitle {
-            color: var(--text-secondary);
-            font-size: 16px;
-            margin-bottom: 32px;
-            line-height: 1.5;
-        }
+    /* Sistema de telas — transição suave */
+    .screen {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        visibility: hidden;
+        transform: scale(0.96) translateY(10px);
+        transition:
+            opacity 0.5s var(--smooth),
+            transform 0.6s var(--spring),
+            visibility 0s linear 0.5s;
+        pointer-events: none;
+    }
+    .screen.active {
+        position: relative;
+        opacity: 1;
+        visibility: visible;
+        transform: scale(1) translateY(0);
+        transition:
+            opacity 0.5s var(--smooth),
+            transform 0.6s var(--spring),
+            visibility 0s;
+        pointer-events: auto;
+    }
 
-        .form-group { margin-bottom: 20px; }
+    /* Cartão de vidro */
+    .glass {
+        background: var(--surface);
+        backdrop-filter: blur(30px) saturate(180%);
+        -webkit-backdrop-filter: blur(30px) saturate(180%);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-lg);
+        padding: 36px;
+    }
 
-        label {
-            display: block;
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 6px;
-            color: var(--text-secondary);
-        }
+    h1 {
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: -0.8px;
+        margin-bottom: 8px;
+    }
+    .subtitle {
+        color: var(--text-2);
+        font-size: 16px;
+        line-height: 1.5;
+        margin-bottom: 28px;
+    }
 
-        input, textarea {
-            width: 100%;
-            padding: 14px 16px;
-            font-family: var(--font-family);
-            font-size: 16px;
-            color: var(--text-primary);
-            background: rgba(255, 255, 255, 0.5);
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 12px;
-            outline: none;
-            transition: border-color 0.2s var(--ease-out-quart), box-shadow 0.2s var(--ease-out-quart);
-        }
+    /* Cards de escolha */
+    .choice {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+    .choice-card {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 22px 24px;
+        background: var(--surface-strong);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        cursor: pointer;
+        text-align: left;
+        font-family: var(--font);
+        transition: transform 0.5s var(--spring), box-shadow 0.5s var(--spring), background 0.3s var(--smooth);
+        box-shadow: var(--shadow-sm);
+    }
+    .choice-card:hover {
+        transform: translateY(-3px) scale(1.01);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+        background: rgba(255, 255, 255, 0.9);
+    }
+    .choice-card:active { transform: scale(0.98); }
 
-        input:focus, textarea:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15);
-        }
+    .choice-icon {
+        width: 48px; height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, var(--accent), #42a5ff);
+        color: white;
+        box-shadow: 0 6px 16px rgba(0, 113, 227, 0.3);
+    }
+    .choice-icon.alt {
+        background: linear-gradient(135deg, #ff5e8a, #ff9e64);
+        box-shadow: 0 6px 16px rgba(255, 94, 138, 0.3);
+    }
+    .choice-text h3 {
+        font-size: 17px;
+        font-weight: 600;
+        margin-bottom: 2px;
+        letter-spacing: -0.2px;
+    }
+    .choice-text p {
+        font-size: 14px;
+        color: var(--text-2);
+    }
+    .choice-arrow {
+        margin-left: auto;
+        color: var(--text-2);
+        font-size: 20px;
+        transition: transform 0.4s var(--spring);
+    }
+    .choice-card:hover .choice-arrow { transform: translateX(4px); }
 
-        textarea { resize: vertical; min-height: 120px; }
+    /* Botão voltar */
+    .back-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid var(--border);
+        color: var(--text);
+        font-family: var(--font);
+        font-size: 14px;
+        font-weight: 500;
+        padding: 8px 14px;
+        border-radius: 100px;
+        cursor: pointer;
+        margin-bottom: 20px;
+        transition: transform 0.4s var(--spring), background 0.3s;
+    }
+    .back-btn:hover { background: rgba(255, 255, 255, 0.9); transform: translateX(-3px); }
+    .back-btn:active { transform: scale(0.95); }
 
-        button {
-            width: 100%;
-            padding: 16px;
-            font-family: var(--font-family);
-            font-size: 17px;
-            font-weight: 600;
-            color: white;
-            background: var(--accent);
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: transform 0.2s var(--ease-spring), background 0.2s var(--ease-out-quart);
-        }
+    /* Formulário */
+    .form-group { margin-bottom: 18px; }
+    label {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-2);
+        margin-bottom: 6px;
+        padding-left: 4px;
+    }
+    input, textarea {
+        width: 100%;
+        padding: 14px 16px;
+        font-family: var(--font);
+        font-size: 16px;
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.6);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 14px;
+        outline: none;
+        transition: border-color 0.3s var(--smooth), box-shadow 0.3s var(--smooth), background 0.3s;
+    }
+    input:focus, textarea:focus {
+        border-color: var(--accent);
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15);
+    }
+    textarea { resize: vertical; min-height: 120px; }
 
-        button:hover { background: #0077ed; }
-        button:active { transform: scale(0.97); }
-        button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-primary {
+        width: 100%;
+        padding: 16px;
+        font-family: var(--font);
+        font-size: 17px;
+        font-weight: 600;
+        color: white;
+        background: var(--accent);
+        border: none;
+        border-radius: 14px;
+        cursor: pointer;
+        margin-top: 8px;
+        transition: transform 0.3s var(--spring), background 0.3s var(--smooth);
+        box-shadow: 0 8px 24px rgba(0, 113, 227, 0.35);
+    }
+    .btn-primary:hover { background: var(--accent-hover); transform: translateY(-2px); box-shadow: 0 12px 28px rgba(0, 113, 227, 0.4); }
+    .btn-primary:active { transform: scale(0.97); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-        .success-message {
-            display: none;
-            text-align: center;
-            padding: 20px 0;
-            color: var(--accent);
-            font-weight: 500;
-        }
-    </style>
+    /* Lista de feedbacks */
+    .feedbacks-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-height: 60vh;
+        overflow-y: auto;
+        padding-right: 4px;
+        margin-top: 8px;
+    }
+    .feedbacks-list::-webkit-scrollbar { width: 6px; }
+    .feedbacks-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+
+    .feedback-item {
+        background: rgba(255, 255, 255, 0.65);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 18px 20px;
+        animation: slideIn 0.5s var(--spring) both;
+    }
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .feedback-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 6px;
+        gap: 12px;
+    }
+    .feedback-name {
+        font-weight: 600;
+        font-size: 15px;
+        letter-spacing: -0.2px;
+    }
+    .feedback-date {
+        font-size: 12px;
+        color: var(--text-2);
+        white-space: nowrap;
+    }
+    .feedback-msg {
+        font-size: 15px;
+        line-height: 1.5;
+        color: #333;
+        word-wrap: break-word;
+    }
+
+    .empty, .loading {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--text-2);
+        font-size: 15px;
+    }
+
+    /* Tela de sucesso */
+    .success {
+        text-align: center;
+        padding: 20px 0;
+    }
+    .success-icon {
+        width: 72px; height: 72px;
+        margin: 0 auto 20px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #34c759, #30d158);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36px;
+        color: white;
+        box-shadow: 0 12px 32px rgba(52, 199, 89, 0.4);
+        animation: pop 0.6s var(--spring);
+    }
+    @keyframes pop {
+        0% { transform: scale(0); }
+        60% { transform: scale(1.15); }
+        100% { transform: scale(1); }
+    }
+</style>
 </head>
 <body>
 
-    <div class="glass-card">
-        <div id="form-container">
-            <h1>Envie seu Feedback</h1>
-            <p class="subtitle">Sua opinião é muito importante para nós.</p>
+<div class="app">
 
-            <form id="feedback-form">
+    <!-- TELA 1: escolha -->
+    <section class="screen active" id="screen-home">
+        <div class="glass">
+            <h1>Feedback</h1>
+            <p class="subtitle">Sua opinião constrói algo melhor. O que você quer fazer?</p>
+            <div class="choice">
+                <button class="choice-card" id="go-send">
+                    <div class="choice-icon">✍️</div>
+                    <div class="choice-text">
+                        <h3>Dar feedback</h3>
+                        <p>Compartilhe sua opinião com a gente</p>
+                    </div>
+                    <span class="choice-arrow">→</span>
+                </button>
+                <button class="choice-card" id="go-view">
+                    <div class="choice-icon alt">💬</div>
+                    <div class="choice-text">
+                        <h3>Ver feedbacks</h3>
+                        <p>Veja o que as pessoas estão dizendo</p>
+                    </div>
+                    <span class="choice-arrow">→</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- TELA 2: enviar -->
+    <section class="screen" id="screen-send">
+        <div class="glass">
+            <button class="back-btn" data-back>← Voltar</button>
+            <h1>Envie seu feedback</h1>
+            <p class="subtitle">Conte pra gente o que você achou.</p>
+            <form id="form">
                 <div class="form-group">
                     <label for="name">Nome (opcional)</label>
                     <input type="text" id="name" name="name" placeholder="Seu nome">
@@ -142,55 +379,149 @@
                 </div>
                 <div class="form-group">
                     <label for="message">Mensagem *</label>
-                    <textarea id="message" name="message" placeholder="Escreva seu feedback aqui..." required></textarea>
+                    <textarea id="message" name="message" placeholder="Escreva aqui..." required></textarea>
                 </div>
-                <button type="submit" id="submit-btn">Enviar Feedback</button>
+                <button type="submit" class="btn-primary" id="submit-btn">Enviar feedback</button>
             </form>
         </div>
-        <div id="success-message" class="success-message">
-            <h1>Obrigado! 🎉</h1>
-            <p>Seu feedback foi enviado com sucesso.</p>
+    </section>
+
+    <!-- TELA 3: sucesso -->
+    <section class="screen" id="screen-success">
+        <div class="glass">
+            <div class="success">
+                <div class="success-icon">✓</div>
+                <h1>Obrigado!</h1>
+                <p class="subtitle">Seu feedback foi enviado com sucesso.</p>
+                <button class="btn-primary" data-back>Voltar ao início</button>
+            </div>
         </div>
-    </div>
+    </section>
 
-    <script type="module">
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+    <!-- TELA 4: ver feedbacks -->
+    <section class="screen" id="screen-view">
+        <div class="glass">
+            <button class="back-btn" data-back>← Voltar</button>
+            <h1>Feedbacks</h1>
+            <p class="subtitle">O que as pessoas estão dizendo.</p>
+            <div class="feedbacks-list" id="list">
+                <div class="loading">Carregando...</div>
+            </div>
+        </div>
+    </section>
 
-        // ⚠️ SUBSTITUA PELAS SUAS CHAVES DO SUPABASE
-        const SUPABASE_URL = 'SUA_SUPABASE_URL_AQUI';
-        const SUPABASE_ANON_KEY = 'SUA_SUPABASE_ANON_KEY_AQUI';
+</div>
 
-        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+<script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-        const form = document.getElementById('feedback-form');
-        const formContainer = document.getElementById('form-container');
-        const successMessage = document.getElementById('success-message');
-        const submitBtn = document.getElementById('submit-btn');
+    // ⚠️ COLE AQUI SUA PROJECT URL (ex: https://xxxxx.supabase.co)
+    const SUPABASE_URL = 'COLE_SUA_PROJECT_URL_AQUI';
+    const SUPABASE_KEY = 'sb_publishable_B7R-o2Ekd3X6N2fpMgr9PQ_UPZwbmKk';
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Enviando...';
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-            const formData = new FormData(form);
-            const name = formData.get('name');
-            const email = formData.get('email');
-            const message = formData.get('message');
+    // --- Navegação entre telas ---
+    const screens = {
+        home: document.getElementById('screen-home'),
+        send: document.getElementById('screen-send'),
+        success: document.getElementById('screen-success'),
+        view: document.getElementById('screen-view'),
+    };
 
-            const { error } = await supabase
-                .from('feedbacks')
-                .insert([{ name, email, message }]);
+    function goTo(name) {
+        Object.values(screens).forEach(s => s.classList.remove('active'));
+        screens[name].classList.add('active');
+    }
 
-            if (error) {
-                console.error('Erro ao enviar:', error);
-                alert('Ocorreu um erro. Tente novamente.');
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Enviar Feedback';
-            } else {
-                formContainer.style.display = 'none';
-                successMessage.style.display = 'block';
-            }
-        });
-    </script>
+    document.getElementById('go-send').addEventListener('click', () => goTo('send'));
+    document.getElementById('go-view').addEventListener('click', () => {
+        goTo('view');
+        loadFeedbacks();
+    });
+    document.querySelectorAll('[data-back]').forEach(btn => {
+        btn.addEventListener('click', () => goTo('home'));
+    });
+
+    // --- Enviar feedback ---
+    const form = document.getElementById('form');
+    const submitBtn = document.getElementById('submit-btn');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Enviando...';
+
+        const data = new FormData(form);
+        const payload = {
+            name: data.get('name')?.trim() || null,
+            email: data.get('email')?.trim() || null,
+            message: data.get('message').trim(),
+        };
+
+        const { error } = await supabase.from('feedbacks').insert([payload]);
+
+        if (error) {
+            console.error(error);
+            alert('Erro ao enviar. Tente novamente.');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Enviar feedback';
+        } else {
+            form.reset();
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Enviar feedback';
+            goTo('success');
+        }
+    });
+
+    // --- Carregar feedbacks ---
+    const list = document.getElementById('list');
+
+    async function loadFeedbacks() {
+        list.innerHTML = '<div class="loading">Carregando...</div>';
+
+        const { data, error } = await supabase
+            .from('feedbacks')
+            .select('id, name, message, created_at')
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+        if (error) {
+            console.error(error);
+            list.innerHTML = '<div class="empty">Não foi possível carregar os feedbacks.</div>';
+            return;
+        }
+
+        if (!data.length) {
+            list.innerHTML = '<div class="empty">Ainda não há feedbacks. Seja o primeiro! ✨</div>';
+            return;
+        }
+
+        list.innerHTML = data.map((f, i) => `
+            <div class="feedback-item" style="animation-delay: ${i * 0.05}s">
+                <div class="feedback-header">
+                    <span class="feedback-name">${escapeHtml(f.name || 'Anônimo')}</span>
+                    <span class="feedback-date">${formatDate(f.created_at)}</span>
+                </div>
+                <div class="feedback-msg">${escapeHtml(f.message)}</div>
+            </div>
+        `).join('');
+    }
+
+    function escapeHtml(str) {
+        return String(str)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
+    }
+
+    function formatDate(iso) {
+        const d = new Date(iso);
+        return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+</script>
+
 </body>
 </html>
