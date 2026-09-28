@@ -7,22 +7,26 @@
 <style>
     :root {
         --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+        --mono: 'SF Mono', Menlo, Monaco, Consolas, monospace;
         --bg: #f5f5f7;
+        --surface: rgba(255,255,255,.6);
+        --surface-2: rgba(255,255,255,.78);
+        --border: rgba(255,255,255,.75);
         --text: #1d1d1f;
         --text-2: #86868b;
         --accent: #0071e3;
         --accent-hover: #0077ed;
-        --border: rgba(255, 255, 255, 0.7);
-        --shadow-card: 0 20px 50px rgba(0, 0, 0, 0.10);
-        --shadow-card-hover: 0 32px 80px rgba(0, 0, 0, 0.16);
+        --green: #30d158;
+        --red: #ff453a;
+        --purple: #af52de;
+        --radius: 22px;
+        --shadow-sm: 0 6px 20px rgba(0,0,0,.07);
+        --shadow-lg: 0 24px 70px rgba(0,0,0,.14);
         --spring: cubic-bezier(0.32, 0.72, 0, 1);
         --smooth: cubic-bezier(0.25, 1, 0.5, 1);
     }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    html, body { height: 100%; }
-
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { min-height:100%; }
     body {
         font-family: var(--font);
         background: var(--bg);
@@ -35,393 +39,500 @@
         -webkit-font-smoothing: antialiased;
         overflow-x: hidden;
     }
-
-    /* Blobs decorativos de fundo */
     body::before, body::after {
-        content: '';
-        position: fixed;
-        border-radius: 50%;
-        filter: blur(110px);
-        opacity: 0.55;
-        z-index: -1;
-        pointer-events: none;
+        content:''; position:fixed; border-radius:50%;
+        filter: blur(120px); opacity:.5; z-index:-1; pointer-events:none;
         animation: float 22s ease-in-out infinite;
     }
-    body::before {
-        width: 560px; height: 560px;
-        background: radial-gradient(circle, #a5c8ff 0%, transparent 70%);
-        top: -180px; left: -180px;
-    }
-    body::after {
-        width: 640px; height: 640px;
-        background: radial-gradient(circle, #ffb8d9 0%, transparent 70%);
-        bottom: -220px; right: -220px;
-        animation-delay: -11s;
-    }
-    @keyframes float {
-        0%, 100% { transform: translate(0, 0) scale(1); }
-        50% { transform: translate(40px, -30px) scale(1.08); }
-    }
+    body::before { width:560px;height:560px; background: radial-gradient(circle,#a5c8ff,transparent 70%); top:-180px; left:-180px; }
+    body::after  { width:640px;height:640px; background: radial-gradient(circle,#ffb8d9,transparent 70%); bottom:-220px; right:-220px; animation-delay:-11s; }
+    @keyframes float { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(40px,-30px) scale(1.08);} }
 
-    /* Container de telas (grid para sobrepor) */
+    /* ============ APP / SCREENS ============ */
     .app {
         width: 100%;
         max-width: 760px;
         display: grid;
+        transition: max-width .7s var(--spring);
     }
+    .app.focused { max-width: 1200px; }
 
     .screen {
-        grid-area: 1 / 1;
-        opacity: 0;
-        filter: blur(16px);
-        transform: scale(0.94);
-        visibility: hidden;
-        pointer-events: none;
-        transition:
-            opacity 0.55s var(--smooth),
-            filter 0.55s var(--smooth),
-            transform 0.75s var(--spring),
-            visibility 0s linear 0.75s;
-        display: flex;
-        justify-content: center;
-        align-items: center;
+        grid-area: 1/1;
+        opacity: 0; filter: blur(14px);
+        transform: scale(0.96) translateY(8px);
+        visibility: hidden; pointer-events: none;
+        transition: opacity .5s var(--smooth), filter .5s var(--smooth),
+                    transform .7s var(--spring), visibility 0s linear .7s;
+        display: flex; justify-content: center; align-items: center;
+        width: 100%;
     }
     .screen.active {
-        opacity: 1;
-        filter: blur(0);
-        transform: scale(1);
-        visibility: visible;
-        pointer-events: auto;
-        transition:
-            opacity 0.55s var(--smooth),
-            filter 0.55s var(--smooth),
-            transform 0.75s var(--spring),
-            visibility 0s;
+        opacity: 1; filter: blur(0);
+        transform: scale(1) translateY(0);
+        visibility: visible; pointer-events: auto;
+        transition: opacity .5s var(--smooth), filter .5s var(--smooth),
+                    transform .7s var(--spring), visibility 0s;
     }
 
-    /* ---------- HOME ---------- */
-    .stage {
-        display: flex;
-        gap: 16px;
-        width: 100%;
-        align-items: stretch;
-        animation: stageIn 0.9s var(--spring) both;
-    }
-    @keyframes stageIn {
-        from { opacity: 0; transform: translateY(20px) scale(0.97); filter: blur(8px); }
-        to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
-    }
-
-    /* Peeks laterais (decorativos) */
-    .peek {
-        flex: 0 0 42px;
-        border-radius: 24px;
-        background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.20));
-        border: 1px solid var(--border);
-        backdrop-filter: blur(20px) saturate(180%);
-        -webkit-backdrop-filter: blur(20px) saturate(180%);
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
-        position: relative;
-        overflow: hidden;
-        animation: cardIn 0.8s var(--spring) both;
-    }
-    .peek::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(180deg,
-            rgba(0, 113, 227, 0.18) 0%,
-            transparent 45%,
-            transparent 55%,
-            rgba(255, 94, 138, 0.18) 100%);
-    }
-    .peek:first-child { animation-delay: 0.25s; }
-    .peek:last-child  { animation-delay: 0.30s; }
-
-    /* Cards principais */
-    .card {
-        position: relative;
-        flex: 1 1 0;
-        min-width: 0;
-        min-height: 340px;
-        padding: 30px 28px;
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        text-align: left;
-        gap: 18px;
-
-        background: rgba(255, 255, 255, 0.55);
-        backdrop-filter: blur(30px) saturate(180%);
-        -webkit-backdrop-filter: blur(30px) saturate(180%);
-        border: 1px solid var(--border);
-        border-radius: 28px;
-        box-shadow: var(--shadow-card);
-        cursor: pointer;
-        font-family: inherit;
-        color: inherit;
-        overflow: hidden;
-
-        transition:
-            transform 0.75s var(--spring),
-            box-shadow 0.75s var(--spring),
-            background 0.4s var(--smooth),
-            border-color 0.4s var(--smooth);
-        animation: cardIn 0.85s var(--spring) both;
-    }
-    .card:nth-of-type(1) { animation-delay: 0.10s; }
-    .card:nth-of-type(2) { animation-delay: 0.18s; }
-
-    @keyframes cardIn {
-        from { opacity: 0; transform: translateY(24px) scale(0.96); filter: blur(6px); }
-        to   { opacity: 1; transform: translateY(0)    scale(1);    filter: blur(0); }
-    }
-
-    .card::after {
-        /* brilho interno no topo */
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
-        opacity: 0.7;
-        pointer-events: none;
-    }
-
-    .card:hover {
-        transform: translateY(-8px) scale(1.015);
-        box-shadow: var(--shadow-card-hover);
-        background: rgba(255, 255, 255, 0.72);
-        border-color: rgba(255, 255, 255, 0.95);
-    }
-    .card:active {
-        transform: scale(0.975);
-        transition-duration: 0.15s;
-    }
-    .card.opening {
-        transform: scale(1.05);
-        box-shadow: 0 45px 100px rgba(0, 113, 227, 0.35);
-        transition:
-            transform 0.55s var(--spring),
-            box-shadow 0.55s var(--spring);
-    }
-
-    .card-icon {
-        width: 58px;
-        height: 58px;
-        border-radius: 18px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 26px;
-        background: linear-gradient(135deg, #0071e3, #42a5ff);
-        box-shadow: 0 10px 24px rgba(0, 113, 227, 0.35);
-        flex-shrink: 0;
-    }
-    .card-icon.alt {
-        background: linear-gradient(135deg, #ff5e8a, #ff9e64);
-        box-shadow: 0 10px 24px rgba(255, 94, 138, 0.35);
-    }
-
-    .card h3 {
-        font-size: 24px;
-        font-weight: 700;
-        letter-spacing: -0.5px;
-        line-height: 1.15;
-    }
-    .card p {
-        font-size: 15px;
-        color: var(--text-2);
-        line-height: 1.5;
-    }
-
-    .card-arrow {
-        position: absolute;
-        bottom: 24px;
-        right: 24px;
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
-        background: rgba(0, 0, 0, 0.06);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 16px;
-        color: var(--text);
-        transition:
-            transform 0.55s var(--spring),
-            background 0.35s var(--smooth),
-            color 0.35s var(--smooth);
-    }
-    .card:hover .card-arrow {
-        transform: translateX(4px);
-        background: rgba(0, 113, 227, 0.15);
-        color: var(--accent);
-    }
-
-    /* ---------- TELAS INTERNAS ---------- */
+    /* ============ GLASS PANEL ============ */
     .panel {
         width: 100%;
         max-width: 560px;
-        background: rgba(255, 255, 255, 0.6);
+        background: var(--surface);
         backdrop-filter: blur(30px) saturate(180%);
         -webkit-backdrop-filter: blur(30px) saturate(180%);
         border: 1px solid var(--border);
         border-radius: 26px;
-        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.12);
+        box-shadow: var(--shadow-lg);
         padding: 36px;
+        transition: max-width .7s var(--spring), padding .7s var(--spring),
+                    border-radius .7s var(--spring), box-shadow .7s var(--spring);
+    }
+    .panel.wide {
+        max-width: 100%;
+        padding: 44px 52px;
+        border-radius: 30px;
+        box-shadow: 0 40px 100px rgba(0,0,0,.18);
     }
 
-    h1 {
-        font-size: 30px;
-        font-weight: 700;
-        letter-spacing: -0.7px;
-        margin-bottom: 8px;
-    }
-    .subtitle {
-        color: var(--text-2);
-        font-size: 16px;
-        line-height: 1.5;
-        margin-bottom: 26px;
-    }
+    h1 { font-size: 30px; font-weight: 700; letter-spacing: -.7px; margin-bottom: 8px; }
+    .subtitle { color: var(--text-2); font-size: 16px; line-height: 1.5; margin-bottom: 24px; }
 
-    .back-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        background: rgba(255, 255, 255, 0.65);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 1px solid var(--border);
-        color: var(--text);
-        font-family: inherit;
-        font-size: 14px;
-        font-weight: 500;
-        padding: 8px 14px;
-        border-radius: 100px;
-        cursor: pointer;
-        margin-bottom: 22px;
-        transition: transform 0.45s var(--spring), background 0.3s var(--smooth);
-    }
-    .back-btn:hover { background: rgba(255,255,255,0.95); transform: translateX(-3px); }
-    .back-btn:active { transform: scale(0.95); }
-
-    .form-group { margin-bottom: 18px; }
-    label {
-        display: block;
-        font-size: 13px;
-        font-weight: 500;
-        color: var(--text-2);
-        margin-bottom: 6px;
-        padding-left: 4px;
-    }
-    input, textarea {
+    /* ============ HOME CARDS ============ */
+    .stage {
+        display: flex; gap: 16px; align-items: stretch;
         width: 100%;
-        padding: 14px 16px;
-        font-family: inherit;
-        font-size: 16px;
-        color: var(--text);
-        background: rgba(255, 255, 255, 0.65);
-        border: 1px solid rgba(0, 0, 0, 0.08);
-        border-radius: 14px;
-        outline: none;
-        transition:
-            border-color 0.3s var(--smooth),
-            box-shadow 0.3s var(--smooth),
-            background 0.3s var(--smooth);
+        animation: stageIn .9s var(--spring) both;
     }
-    input:focus, textarea:focus {
-        border-color: var(--accent);
-        background: rgba(255, 255, 255, 0.98);
-        box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15);
+    @keyframes stageIn {
+        from { opacity:0; transform: translateY(20px) scale(.97); filter: blur(8px); }
+        to   { opacity:1; transform: translateY(0) scale(1); filter: blur(0); }
     }
-    textarea { resize: vertical; min-height: 120px; }
+    .peek {
+        flex: 0 0 42px;
+        border-radius: 24px;
+        background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.20));
+        border: 1px solid var(--border);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        box-shadow: 0 12px 30px rgba(0,0,0,.06);
+        position: relative; overflow: hidden;
+        animation: cardIn .8s var(--spring) both;
+    }
+    .peek::before {
+        content:''; position:absolute; inset:0;
+        background: linear-gradient(180deg, rgba(0,113,227,.18) 0%, transparent 45%, transparent 55%, rgba(255,94,138,.18) 100%);
+    }
+    .peek:first-child { animation-delay: .25s; }
+    .peek:last-child  { animation-delay: .30s; }
+
+    .card {
+        position: relative; flex: 1 1 0; min-width: 0;
+        min-height: 340px;
+        padding: 30px 28px;
+        display: flex; flex-direction: column;
+        align-items: flex-start; text-align: left; gap: 16px;
+        background: var(--surface);
+        backdrop-filter: blur(30px) saturate(180%);
+        -webkit-backdrop-filter: blur(30px) saturate(180%);
+        border: 1px solid var(--border);
+        border-radius: 28px;
+        box-shadow: var(--shadow-sm);
+        cursor: pointer; font-family: inherit; color: inherit;
+        overflow: hidden;
+        transition: transform .75s var(--spring), box-shadow .75s var(--spring),
+                    background .4s var(--smooth), border-color .4s var(--smooth);
+        animation: cardIn .85s var(--spring) both;
+    }
+    .card:nth-of-type(1) { animation-delay: .10s; }
+    .card:nth-of-type(2) { animation-delay: .18s; }
+    @keyframes cardIn {
+        from { opacity:0; transform: translateY(24px) scale(.96); filter: blur(6px); }
+        to   { opacity:1; transform: translateY(0) scale(1); filter: blur(0); }
+    }
+    .card::after {
+        content:''; position:absolute; top:0; left:0; right:0; height:1px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,.9), transparent);
+        opacity:.7; pointer-events:none;
+    }
+    .card:hover {
+        transform: translateY(-8px) scale(1.015);
+        box-shadow: 0 32px 80px rgba(0,0,0,.16);
+        background: rgba(255,255,255,.78);
+        border-color: rgba(255,255,255,.95);
+    }
+    .card:active { transform: scale(.975); transition-duration: .15s; }
+    .card.opening {
+        transform: scale(1.05);
+        box-shadow: 0 45px 100px rgba(0,113,227,.35);
+        transition: transform .55s var(--spring), box-shadow .55s var(--spring);
+    }
+    .card-icon {
+        width: 58px; height: 58px; border-radius: 18px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 26px; color: white; flex-shrink: 0;
+        background: linear-gradient(135deg, #0071e3, #42a5ff);
+        box-shadow: 0 10px 24px rgba(0,113,227,.35);
+    }
+    .card-icon.alt {
+        background: linear-gradient(135deg, #ff5e8a, #ff9e64);
+        box-shadow: 0 10px 24px rgba(255,94,138,.35);
+    }
+    .card h3 { font-size: 24px; font-weight: 700; letter-spacing: -.5px; line-height: 1.15; }
+    .card p { font-size: 15px; color: var(--text-2); line-height: 1.5; }
+    .card-arrow {
+        position: absolute; bottom: 24px; right: 24px;
+        width: 38px; height: 38px; border-radius: 50%;
+        background: rgba(0,0,0,.06);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 16px; color: var(--text);
+        transition: transform .55s var(--spring), background .35s var(--smooth), color .35s var(--smooth);
+    }
+    .card:hover .card-arrow { transform: translateX(4px); background: rgba(0,113,227,.15); color: var(--accent); }
+
+    /* ============ BUTTONS ============ */
+    .back-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: var(--surface-2);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--border);
+        color: var(--text); font-family: inherit; font-size: 14px; font-weight: 500;
+        padding: 8px 14px; border-radius: 100px; cursor: pointer;
+        margin-bottom: 22px;
+        transition: transform .45s var(--spring), background .3s;
+    }
+    .back-btn:hover { background: #fff; transform: translateX(-3px); }
+    .back-btn:active { transform: scale(.95); }
 
     .btn-primary {
-        width: 100%;
-        padding: 16px;
-        font-family: inherit;
-        font-size: 17px;
-        font-weight: 600;
-        color: white;
-        background: var(--accent);
-        border: none;
-        border-radius: 14px;
-        cursor: pointer;
+        width: 100%; padding: 16px;
+        font-family: inherit; font-size: 17px; font-weight: 600;
+        color: white; background: var(--accent);
+        border: none; border-radius: 14px; cursor: pointer;
         margin-top: 8px;
-        transition:
-            transform 0.4s var(--spring),
-            background 0.3s var(--smooth),
-            box-shadow 0.4s var(--spring);
-        box-shadow: 0 10px 26px rgba(0, 113, 227, 0.35);
+        transition: transform .4s var(--spring), background .3s var(--smooth), box-shadow .4s var(--spring);
+        box-shadow: 0 10px 26px rgba(0,113,227,.35);
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
     }
     .btn-primary:hover {
-        background: var(--accent-hover);
-        transform: translateY(-2px);
-        box-shadow: 0 14px 32px rgba(0, 113, 227, 0.4);
+        background: var(--accent-hover); transform: translateY(-2px);
+        box-shadow: 0 14px 32px rgba(0,113,227,.4);
     }
-    .btn-primary:active { transform: scale(0.97); }
-    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .btn-primary:active { transform: scale(.97); }
+    .btn-primary:disabled { opacity: .6; cursor: not-allowed; transform: none; }
 
-    /* Lista de feedbacks */
-    .feedbacks-list {
+    .btn-ghost {
+        padding: 10px 18px;
+        font-family: inherit; font-size: 14px; font-weight: 600;
+        color: var(--text); background: var(--surface-2);
+        border: 1px solid rgba(0,0,0,.06); border-radius: 12px;
+        cursor: pointer;
+        transition: transform .4s var(--spring), background .3s, box-shadow .3s;
+    }
+    .btn-ghost:hover { background: #fff; transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,.08); }
+    .btn-ghost:active { transform: scale(.96); }
+
+    /* ============ FORM ============ */
+    .form-group { margin-bottom: 18px; }
+    label {
+        display: block; font-size: 13px; font-weight: 600;
+        color: var(--text-2); margin-bottom: 6px; padding-left: 4px;
+        text-transform: uppercase; letter-spacing: .4px;
+    }
+    input[type="text"], input[type="email"], input[type="url"] {
+        width: 100%; padding: 14px 16px;
+        font-family: inherit; font-size: 16px; color: var(--text);
+        background: rgba(255,255,255,.65);
+        border: 1px solid rgba(0,0,0,.08);
+        border-radius: 14px; outline: none;
+        transition: border-color .3s, box-shadow .3s, background .3s;
+    }
+    input:focus {
+        border-color: var(--accent); background: #fff;
+        box-shadow: 0 0 0 4px rgba(0,113,227,.15);
+    }
+
+    /* ============ EDITOR RICO ============ */
+    .editor {
+        border: 1px solid rgba(0,0,0,.08); border-radius: 16px;
+        background: rgba(255,255,255,.65);
+        overflow: hidden;
+        transition: border-color .3s, box-shadow .3s, background .3s;
+    }
+    .editor:focus-within {
+        border-color: var(--accent);
+        background: #fff;
+        box-shadow: 0 0 0 4px rgba(0,113,227,.15);
+    }
+    .editor-toolbar {
+        display: flex; gap: 4px; flex-wrap: wrap;
+        padding: 8px 10px;
+        background: rgba(0,0,0,.02);
+        border-bottom: 1px solid rgba(0,0,0,.06);
+        align-items: center;
+    }
+    .editor-toolbar button {
+        width: 34px; height: 34px; border-radius: 9px;
+        border: none; background: transparent; cursor: pointer;
+        font-family: inherit; font-size: 14px; color: var(--text);
+        display: flex; align-items: center; justify-content: center;
+        transition: background .2s, transform .35s var(--spring), color .2s;
+    }
+    .editor-toolbar button:hover { background: rgba(0,113,227,.12); color: var(--accent); }
+    .editor-toolbar button:active { transform: scale(.9); }
+    .editor-toolbar button.on { background: rgba(0,113,227,.18); color: var(--accent); }
+    .editor-toolbar .sep {
+        width: 1px; height: 22px; background: rgba(0,0,0,.1); margin: 0 6px;
+    }
+    .editor-toolbar .spacer { flex: 1; }
+    .editor-toolbar .focus-btn {
+        width: auto; padding: 0 12px; gap: 6px;
+        font-size: 12px; font-weight: 600;
+        background: rgba(0,113,227,.10); color: var(--accent);
+    }
+    .editor-toolbar .focus-btn:hover { background: rgba(0,113,227,.18); }
+
+    .editor-content {
+        min-height: 160px; max-height: 320px; padding: 18px 20px;
+        font-size: 16px; line-height: 1.6; outline: none;
+        word-break: break-word;
+        overflow-y: auto;
+        transition: min-height .5s var(--spring), max-height .5s var(--spring),
+                    font-size .5s var(--spring), padding .5s var(--spring);
+    }
+    .editor-content:empty::before {
+        content: attr(data-placeholder);
+        color: var(--text-2); pointer-events: none;
+    }
+    .editor-content img { max-width: 100%; border-radius: 10px; margin: 6px 0; }
+    .editor-content b, .editor-content strong { font-weight: 700; }
+    .editor-content ul, .editor-content ol { padding-left: 24px; margin: 6px 0; }
+    .editor-content a { color: var(--accent); }
+
+    /* ============ MODO FOCO ============ */
+    body.focus-mode { padding: 0; align-items: stretch; }
+
+    body.focus-mode .app {
+        max-width: 100%;
+        height: 100vh;
+        min-height: 100vh;
+    }
+
+    body.focus-mode .screen.active {
+        width: 100%;
+        height: 100vh;
+        padding: 0;
+    }
+
+    body.focus-mode .panel.wide {
+        height: 100vh;
+        max-width: 100%;
+        border-radius: 0;
+        padding: 24px 12vw 24px 12vw;
         display: flex;
         flex-direction: column;
-        gap: 12px;
-        max-height: 60vh;
-        overflow-y: auto;
+        box-shadow: none;
+        border: none;
+        background: rgba(255,255,255,.72);
+        backdrop-filter: blur(40px) saturate(180%);
+        -webkit-backdrop-filter: blur(40px) saturate(180%);
+    }
+
+    /* Quando está em modo foco, esconde os campos nome/email pra dar espaço */
+    body.focus-mode .form-group.collapsible { display: none; }
+
+    body.focus-mode .editor {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+    body.focus-mode .editor-content {
+        flex: 1;
+        max-height: none;
+        min-height: 0;
+        font-size: 19px;
+        line-height: 1.7;
+        padding: 30px 34px;
+    }
+    body.focus-mode .editor-content:empty::before { font-size: 19px; }
+
+    body.focus-mode h1 {
+        font-size: 40px;
+        letter-spacing: -1px;
+        margin-bottom: 6px;
+    }
+    body.focus-mode .subtitle {
+        font-size: 17px;
+        margin-bottom: 22px;
+    }
+    body.focus-mode .form-group:last-of-type { flex: 1; display: flex; flex-direction: column; min-height: 0; margin-bottom: 12px; }
+    body.focus-mode .form-group:last-of-type .editor { flex: 1; min-height: 0; }
+
+    /* Fade-in sutil pro corpo ganhar foco */
+    body.focus-mode .panel.wide > * { animation: focusIn .6s var(--spring) both; }
+    body.focus-mode .panel.wide > *:nth-child(1) { animation-delay: .05s; }
+    body.focus-mode .panel.wide > *:nth-child(2) { animation-delay: .08s; }
+    body.focus-mode .panel.wide > *:nth-child(3) { animation-delay: .11s; }
+    body.focus-mode .panel.wide > *:nth-child(4) { animation-delay: .14s; }
+    body.focus-mode .panel.wide > *:nth-child(5) { animation-delay: .17s; }
+    body.focus-mode .panel.wide > *:nth-child(6) { animation-delay: .20s; }
+    @keyframes focusIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Botão sair do foco, fixo no canto */
+    .focus-exit {
+        position: fixed; top: 20px; right: 20px;
+        z-index: 1000;
+        padding: 10px 16px;
+        background: rgba(0,0,0,.75);
+        color: white;
+        font-family: inherit; font-size: 13px; font-weight: 600;
+        border: none; border-radius: 100px;
+        cursor: pointer;
+        display: none; align-items: center; gap: 6px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 8px 24px rgba(0,0,0,.25);
+        transition: transform .4s var(--spring), background .3s;
+    }
+    .focus-exit:hover { background: rgba(0,0,0,.9); transform: scale(1.05); }
+    .focus-exit:active { transform: scale(.95); }
+    body.focus-mode .focus-exit { display: inline-flex; animation: popIn .5s var(--spring); }
+    @keyframes popIn {
+        from { opacity: 0; transform: translateY(-10px) scale(.9); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Barra de progresso/indicador de foco */
+    .focus-hint {
+        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
+        background: rgba(0,0,0,.7); color: white;
+        font-size: 12px; font-weight: 500; padding: 8px 16px;
+        border-radius: 100px; opacity: 0;
+        transition: opacity .5s var(--smooth), transform .5s var(--spring);
+        pointer-events: none; z-index: 999;
+        backdrop-filter: blur(10px);
+    }
+    body.focus-mode .focus-hint {
+        opacity: 1; transform: translateX(-50%) translateY(0);
+        transition-delay: 1s;
+    }
+
+    /* ============ UPLOAD DE IMAGEM ============ */
+    .dropzone {
+        border: 2px dashed rgba(0,113,227,.3);
+        border-radius: 14px;
+        padding: 18px;
+        text-align: center;
+        background: rgba(0,113,227,.04);
+        cursor: pointer;
+        transition: border-color .3s, background .3s, padding .4s var(--spring);
+        margin-top: 6px;
+    }
+    .dropzone:hover, .dropzone.over {
+        border-color: var(--accent);
+        background: rgba(0,113,227,.08);
+    }
+    .dropzone p { font-size: 13px; color: var(--text-2); }
+    .dropzone p b { color: var(--accent); }
+    body.focus-mode .dropzone { padding: 10px; }
+
+    .img-preview { position: relative; display: inline-block; margin-top: 10px; }
+    .img-preview img {
+        max-width: 180px; max-height: 140px;
+        border-radius: 12px;
+        box-shadow: 0 8px 20px rgba(0,0,0,.12);
+    }
+    .img-preview .remove {
+        position: absolute; top: -8px; right: -8px;
+        width: 26px; height: 26px; border-radius: 50%;
+        background: var(--red); color: white; border: none;
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 14px;
+        box-shadow: 0 4px 12px rgba(255,69,58,.4);
+        transition: transform .3s var(--spring);
+    }
+    .img-preview .remove:hover { transform: scale(1.1); }
+
+    /* ============ LISTA DE FEEDBACKS ============ */
+    .feedbacks-list {
+        display: flex; flex-direction: column; gap: 12px;
+        max-height: 60vh; overflow-y: auto;
         padding-right: 4px;
     }
     .feedbacks-list::-webkit-scrollbar { width: 6px; }
-    .feedbacks-list::-webkit-scrollbar-thumb {
-        background: rgba(0,0,0,0.15);
-        border-radius: 3px;
-    }
+    .feedbacks-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 3px; }
 
     .feedback-item {
-        background: rgba(255, 255, 255, 0.7);
+        background: rgba(255,255,255,.7);
         border: 1px solid var(--border);
         border-radius: 16px;
         padding: 18px 20px;
-        animation: slideIn 0.55s var(--spring) both;
+        cursor: pointer;
+        animation: slideIn .55s var(--spring) both;
+        transition: transform .5s var(--spring), box-shadow .5s var(--spring), background .3s, border-color .3s;
     }
+    .feedback-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 14px 34px rgba(0,0,0,.10);
+        background: #fff;
+        border-color: rgba(0,113,227,.25);
+    }
+    .feedback-item:active { transform: scale(.99); }
     @keyframes slideIn {
         from { opacity: 0; transform: translateY(14px); filter: blur(4px); }
-        to   { opacity: 1; transform: translateY(0);    filter: blur(0); }
+        to   { opacity: 1; transform: translateY(0); filter: blur(0); }
     }
     .feedback-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        margin-bottom: 6px;
-        gap: 12px;
+        display: flex; justify-content: space-between;
+        align-items: baseline; margin-bottom: 6px; gap: 12px;
     }
     .feedback-name { font-weight: 600; font-size: 15px; }
     .feedback-date { font-size: 12px; color: var(--text-2); white-space: nowrap; }
-    .feedback-msg { font-size: 15px; line-height: 1.5; color: #333; word-wrap: break-word; }
-
-    .empty, .loading {
-        text-align: center;
-        padding: 40px 20px;
-        color: var(--text-2);
-        font-size: 15px;
+    .feedback-msg {
+        font-size: 15px; line-height: 1.55; color: #333;
+        word-wrap: break-word;
+    }
+    .feedback-msg img {
+        max-width: 100%; border-radius: 10px; margin-top: 8px;
+        display: block;
+    }
+    .fb-badge {
+        display: inline-flex; align-items: center; gap: 4px;
+        font-size: 10px; font-weight: 600;
+        text-transform: uppercase; letter-spacing: .4px;
+        padding: 2px 7px; border-radius: 100px;
+        background: rgba(175,82,222,.15); color: var(--purple);
+        margin-left: 6px;
     }
 
-    /* Tela de sucesso */
+    .empty, .loading {
+        text-align: center; padding: 40px 20px;
+        color: var(--text-2); font-size: 15px;
+    }
+    .loading::before {
+        content: ''; display: inline-block;
+        width: 16px; height: 16px;
+        border: 2px solid rgba(0,0,0,.15); border-top-color: var(--accent);
+        border-radius: 50%; animation: spin .8s linear infinite;
+        margin-right: 8px; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ============ SUCESSO ============ */
     .success { text-align: center; padding: 12px 0; }
     .success-icon {
-        width: 76px;
-        height: 76px;
-        margin: 0 auto 20px;
+        width: 76px; height: 76px; margin: 0 auto 20px;
         border-radius: 50%;
         background: linear-gradient(135deg, #34c759, #30d158);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 38px;
-        color: white;
-        box-shadow: 0 16px 40px rgba(52, 199, 89, 0.45);
-        animation: pop 0.7s var(--spring) both;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 38px; color: white;
+        box-shadow: 0 16px 40px rgba(52,199,89,.45);
+        animation: pop .7s var(--spring) both;
     }
     @keyframes pop {
         0%   { transform: scale(0);   opacity: 0; }
@@ -429,7 +540,24 @@
         100% { transform: scale(1);   opacity: 1; }
     }
 
-    /* ---------- RESPONSIVO ---------- */
+    /* ============ TOAST ============ */
+    .toast {
+        position: fixed; left: 50%; bottom: 30px;
+        transform: translate(-50%, 80px);
+        background: #1d1d1f; color: white;
+        padding: 12px 22px; border-radius: 100px;
+        font-size: 14px; font-weight: 500;
+        box-shadow: 0 12px 40px rgba(0,0,0,.3);
+        z-index: 2000; opacity: 0;
+        transition: transform .5s var(--spring), opacity .4s;
+        pointer-events: none;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .toast.show { transform: translate(-50%, 0); opacity: 1; }
+    .toast.ok::before { content: '✓'; color: var(--green); font-weight: 700; }
+    .toast.error::before { content: '✕'; color: var(--red); font-weight: 700; }
+
+    /* ============ RESPONSIVO ============ */
     @media (max-width: 720px) {
         .stage { gap: 12px; }
         .peek { flex: 0 0 28px; border-radius: 20px; }
@@ -446,14 +574,20 @@
         .card-arrow { bottom: 20px; right: 20px; }
         .panel { padding: 26px 22px; }
         h1 { font-size: 26px; }
+        body.focus-mode .panel.wide { padding: 20px 18px; }
+        body.focus-mode h1 { font-size: 28px; }
+        body.focus-mode .editor-content { padding: 20px; font-size: 17px; }
     }
 </style>
 </head>
 <body>
 
-<div class="app">
+<button class="focus-exit" id="focus-exit">✕ Sair do foco</button>
+<div class="focus-hint">Pressione <b style="color:#60a5fa">Esc</b> para sair</div>
 
-    <!-- HOME -->
+<div class="app" id="app">
+
+    <!-- ================= HOME ================= -->
     <section class="screen active" id="screen-home">
         <div class="stage">
             <div class="peek"></div>
@@ -476,31 +610,70 @@
         </div>
     </section>
 
-    <!-- ENVIAR -->
+    <!-- ================= ENVIAR ================= -->
     <section class="screen" id="screen-send">
-        <div class="panel">
+        <div class="panel" id="send-panel">
             <button class="back-btn" data-back>← Voltar</button>
             <h1>Envie seu feedback</h1>
             <p class="subtitle">Conte pra gente o que você achou.</p>
-            <form id="form">
-                <div class="form-group">
+
+            <form id="form" autocomplete="off">
+                <div class="form-group collapsible">
                     <label for="name">Nome (opcional)</label>
                     <input type="text" id="name" name="name" placeholder="Seu nome">
                 </div>
-                <div class="form-group">
+                <div class="form-group collapsible">
                     <label for="email">E-mail (opcional)</label>
                     <input type="email" id="email" name="email" placeholder="seu@email.com">
                 </div>
+
                 <div class="form-group">
-                    <label for="message">Mensagem *</label>
-                    <textarea id="message" name="message" placeholder="Escreva aqui..." required></textarea>
+                    <label>Mensagem *</label>
+                    <div class="editor">
+                        <div class="editor-toolbar">
+                            <button type="button" data-cmd="bold" title="Negrito (Ctrl+B)"><b>B</b></button>
+                            <button type="button" data-cmd="italic" title="Itálico (Ctrl+I)"><i>I</i></button>
+                            <button type="button" data-cmd="underline" title="Sublinhado (Ctrl+U)"><u>U</u></button>
+                            <button type="button" data-cmd="strikeThrough" title="Riscado"><s>S</s></button>
+                            <span class="sep"></span>
+                            <button type="button" data-cmd="insertUnorderedList" title="Lista">•≡</button>
+                            <button type="button" data-cmd="insertOrderedList" title="Lista numerada">1≡</button>
+                            <span class="sep"></span>
+                            <button type="button" data-cmd="createLink" title="Link">🔗</button>
+                            <button type="button" data-action="img" title="Imagem">🖼️</button>
+                            <button type="button" data-action="emoji" title="Emoji">😊</button>
+                            <button type="button" data-cmd="removeFormat" title="Limpar formatação">⌫</button>
+                            <span class="spacer"></span>
+                            <button type="button" class="focus-btn" id="focus-btn" title="Modo foco (F11-like)">
+                                <span id="focus-icon">⛶</span>
+                                <span id="focus-label">Foco</span>
+                            </button>
+                        </div>
+                        <div class="editor-content"
+                             id="editor"
+                             contenteditable="true"
+                             data-placeholder="Escreva aqui... (cole imagens com Ctrl+V)"></div>
+                    </div>
                 </div>
-                <button type="submit" class="btn-primary" id="submit-btn">Enviar feedback</button>
+
+                <div class="form-group collapsible">
+                    <label>Imagem (opcional)</label>
+                    <div class="dropzone" id="dropzone">
+                        <p>Arraste uma imagem ou <b>clique para escolher</b></p>
+                        <p style="font-size:11px; margin-top:4px;">PNG, JPG ou GIF · máx 5 MB</p>
+                    </div>
+                    <input type="file" id="img-input" accept="image/*" hidden>
+                    <div id="img-preview-container"></div>
+                </div>
+
+                <button type="submit" class="btn-primary" id="submit-btn">
+                    Enviar feedback
+                </button>
             </form>
         </div>
     </section>
 
-    <!-- SUCESSO -->
+    <!-- ================= SUCESSO ================= -->
     <section class="screen" id="screen-success">
         <div class="panel">
             <div class="success">
@@ -512,7 +685,7 @@
         </div>
     </section>
 
-    <!-- VER -->
+    <!-- ================= VER ================= -->
     <section class="screen" id="screen-view">
         <div class="panel">
             <button class="back-btn" data-back>← Voltar</button>
@@ -526,95 +699,330 @@
 
 </div>
 
+<div class="toast" id="toast"></div>
+
 <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
+    // =====================================================
     const SUPABASE_URL = 'https://rqeakuvigmxtssadmdov.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_B7R-o2Ekd3X6N2fpMgr9PQ_UPZwbmKk';
+    const TABLE = 'feedbacks';
+    const BUCKET = 'feedback-images';
+    // =====================================================
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+    /* ========== UTIL ========== */
+    function escapeHtml(s) {
+        return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    function formatDate(iso) {
+        return new Date(iso).toLocaleDateString('pt-BR', { day:'2-digit', month:'short', year:'numeric' });
+    }
+    function toast(msg, type='ok') {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = 'toast show ' + type;
+        clearTimeout(toast._t);
+        toast._t = setTimeout(() => t.classList.remove('show'), 2600);
+    }
+    // sanitiza HTML vindo do banco antes de exibir
+    function sanitizeHtml(html) {
+        const allowed = ['b','strong','i','em','u','s','br','p','ul','ol','li','a','span','div','img'];
+        const doc = new DOMParser().parseFromString(html || '', 'text/html');
+        doc.querySelectorAll('*').forEach(el => {
+            if (!allowed.includes(el.tagName.toLowerCase())) {
+                el.replaceWith(...el.childNodes);
+                return;
+            }
+            [...el.attributes].forEach(attr => {
+                const tag = el.tagName.toLowerCase();
+                if (tag === 'a' && attr.name === 'href') return;
+                if (tag === 'img' && (attr.name === 'src' || attr.name === 'alt')) return;
+                el.removeAttribute(attr.name);
+            });
+            if (el.tagName.toLowerCase() === 'a') {
+                el.setAttribute('target', '_blank');
+                el.setAttribute('rel', 'noopener noreferrer');
+            }
+        });
+        return doc.body.innerHTML;
+    }
+
+    /* ========== NAVEGAÇÃO ENTRE TELAS ========== */
     const screens = {
         home: document.getElementById('screen-home'),
         send: document.getElementById('screen-send'),
         success: document.getElementById('screen-success'),
         view: document.getElementById('screen-view'),
     };
-
-    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
     function goTo(name) {
+        // sai do modo foco ao trocar de tela
+        if (name !== 'send') exitFocus();
         Object.values(screens).forEach(s => s.classList.remove('active'));
         screens[name].classList.add('active');
     }
-
-    // Cards da home — abertura suave
     document.querySelectorAll('.card[data-target]').forEach(card => {
         card.addEventListener('click', async () => {
             const target = card.dataset.target;
-
-            // 1) anima o card clicado
             card.classList.add('opening');
-
-            // 2) espera um pouco para o gesto aparecer
             await sleep(190);
-
-            // 3) troca a tela
             goTo(target);
-
-            // 4) limpa o estado do card quando voltar
             await sleep(750);
             card.classList.remove('opening');
-
-            // 5) se for "ver", carrega a lista
             if (target === 'view') loadFeedbacks();
         });
     });
-
-    // Botões "voltar"
     document.querySelectorAll('[data-back]').forEach(btn => {
         btn.addEventListener('click', () => goTo('home'));
     });
 
-    // --- Enviar feedback ---
+    /* ========== MODO FOCO ========== */
+    const app = document.getElementById('app');
+    const focusBtn = document.getElementById('focus-btn');
+    const focusIcon = document.getElementById('focus-icon');
+    const focusLabel = document.getElementById('focus-label');
+    const focusExit = document.getElementById('focus-exit');
+    const editor = document.getElementById('editor');
+
+    let isFocused = false;
+
+    function enterFocus() {
+        if (isFocused) return;
+        isFocused = true;
+        document.body.classList.add('focus-mode');
+        app.classList.add('focused');
+        document.getElementById('send-panel').classList.add('wide');
+        focusIcon.textContent = '⛶';
+        focusLabel.textContent = 'Sair';
+        // pequeno delay pra focar depois da animação começar
+        setTimeout(() => editor.focus(), 300);
+    }
+
+    function exitFocus() {
+        if (!isFocused) return;
+        isFocused = false;
+        document.body.classList.remove('focus-mode');
+        app.classList.remove('focused');
+        document.getElementById('send-panel').classList.remove('wide');
+        focusIcon.textContent = '⛶';
+        focusLabel.textContent = 'Foco';
+    }
+
+    function toggleFocus() {
+        isFocused ? exitFocus() : enterFocus();
+    }
+
+    focusBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        toggleFocus();
+    });
+    focusExit.addEventListener('click', exitFocus);
+
+    // Esc sai do foco
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isFocused) {
+            e.preventDefault();
+            exitFocus();
+        }
+    });
+
+    // Atalho Ctrl+Shift+F pra alternar foco
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
+            e.preventDefault();
+            if (screens.send.classList.contains('active')) toggleFocus();
+        }
+    });
+
+    /* ========== EDITOR RICO ========== */
+    const toolbarButtons = document.querySelectorAll('.editor-toolbar button');
+
+    toolbarButtons.forEach(btn => {
+        btn.addEventListener('mousedown', (e) => e.preventDefault()); // mantém o foco no editor
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const cmd = btn.dataset.cmd;
+            const action = btn.dataset.action;
+
+            if (cmd) {
+                if (cmd === 'createLink') {
+                    const url = prompt('URL do link:');
+                    if (url) {
+                        const sel = window.getSelection();
+                        if (sel.isCollapsed) {
+                            document.execCommand('insertHTML', false,
+                                `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a>`);
+                        } else {
+                            document.execCommand('createLink', false, url);
+                        }
+                    }
+                } else {
+                    document.execCommand(cmd, false, null);
+                }
+                updateToolbarState();
+            } else if (action === 'img') {
+                document.getElementById('img-input').click();
+            } else if (action === 'emoji') {
+                const emoji = prompt('Cole um emoji: 😊 🎉 🔥 ❤️ 🚀 💡 ✨ 👍 👏');
+                if (emoji) document.execCommand('insertText', false, emoji);
+            }
+            editor.focus();
+        });
+    });
+
+    function updateToolbarState() {
+        toolbarButtons.forEach(btn => {
+            const cmd = btn.dataset.cmd;
+            if (!cmd) return;
+            try {
+                if (document.queryCommandState(cmd)) btn.classList.add('on');
+                else btn.classList.remove('on');
+            } catch { /* ignora */ }
+        });
+    }
+    editor.addEventListener('keyup', updateToolbarState);
+    editor.addEventListener('mouseup', updateToolbarState);
+    editor.addEventListener('input', () => {
+        // limpa nós vazios e <br> isolados
+        if (editor.innerHTML === '<br>' || editor.innerHTML === '<div><br></div>') {
+            editor.innerHTML = '';
+        }
+    });
+
+    /* ========== UPLOAD DE IMAGEM ========== */
+    const dropzone = document.getElementById('dropzone');
+    const imgInput = document.getElementById('img-input');
+    const imgPreviewContainer = document.getElementById('img-preview-container');
+    let pendingImage = null;
+
+    function removePendingImage() {
+        if (pendingImage?.previewUrl) URL.revokeObjectURL(pendingImage.previewUrl);
+        pendingImage = null;
+        imgPreviewContainer.innerHTML = '';
+    }
+
+    function handleImageFile(file) {
+        if (!file) return;
+        if (!file.type.startsWith('image/')) { toast('Arquivo precisa ser uma imagem.', 'error'); return; }
+        if (file.size > 5 * 1024 * 1024) { toast('Imagem maior que 5 MB.', 'error'); return; }
+        removePendingImage();
+        const url = URL.createObjectURL(file);
+        pendingImage = { file, previewUrl: url };
+        imgPreviewContainer.innerHTML = `
+            <div class="img-preview">
+                <img src="${url}" alt="">
+                <button class="remove" type="button" title="Remover">✕</button>
+            </div>`;
+        imgPreviewContainer.querySelector('.remove').addEventListener('click', removePendingImage);
+        toast('Imagem anexada.');
+    }
+
+    dropzone.addEventListener('click', () => imgInput.click());
+    imgInput.addEventListener('change', e => handleImageFile(e.target.files[0]));
+
+    ['dragenter','dragover'].forEach(evt =>
+        dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add('over'); })
+    );
+    ['dragleave','drop'].forEach(evt =>
+        dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.remove('over'); })
+    );
+    dropzone.addEventListener('drop', e => handleImageFile(e.dataTransfer.files[0]));
+
+    // colar imagem no editor
+    editor.addEventListener('paste', (e) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        for (const it of items) {
+            if (it.type.startsWith('image/')) {
+                e.preventDefault();
+                handleImageFile(it.getAsFile());
+                return;
+            }
+        }
+    });
+
+    async function uploadImageToStorage(file) {
+        const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+        const path = `public/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;
+        const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+            cacheControl: '31536000', upsert: false,
+        });
+        if (error) throw error;
+        const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+        return data.publicUrl;
+    }
+
+    /* ========== ENVIAR FEEDBACK ========== */
     const form = document.getElementById('form');
     const submitBtn = document.getElementById('submit-btn');
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const text = editor.innerText.trim();
+        if (!text && !pendingImage?.file) {
+            toast('Escreva uma mensagem ou anexe uma imagem.', 'error');
+            editor.focus();
+            return;
+        }
+
         submitBtn.disabled = true;
         submitBtn.textContent = 'Enviando...';
 
-        const data = new FormData(form);
-        const payload = {
-            name: data.get('name')?.trim() || null,
-            email: data.get('email')?.trim() || null,
-            message: data.get('message').trim(),
-        };
+        try {
+            let imageUrl = null;
+            if (pendingImage?.file) {
+                submitBtn.textContent = 'Enviando imagem...';
+                try {
+                    imageUrl = await uploadImageToStorage(pendingImage.file);
+                } catch (err) {
+                    console.error(err);
+                    toast('Falha ao enviar imagem: ' + err.message, 'error');
+                }
+            }
 
-        const { error } = await supabase.from('feedbacks').insert([payload]);
+            const payload = {
+                name: document.getElementById('name').value.trim() || null,
+                email: document.getElementById('email').value.trim() || null,
+                message: sanitizeHtml(editor.innerHTML) || text,
+            };
+            if (imageUrl) payload.image_url = imageUrl;
 
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Enviar feedback';
+            const { error } = await supabase.from(TABLE).insert([payload]);
+            if (error) throw error;
 
-        if (error) {
-            console.error(error);
-            alert('Erro ao enviar. Tente novamente.');
-        } else {
+            // reset
             form.reset();
+            editor.innerHTML = '';
+            removePendingImage();
+            exitFocus();
             goTo('success');
+        } catch (err) {
+            console.error(err);
+            if (err.message?.includes('row-level security')) {
+                toast('Permissão negada. Verifique as policies do Supabase.', 'error');
+            } else if (err.message?.includes('column "image_url"')) {
+                toast('Coluna "image_url" não existe. Rode o SQL.', 'error');
+            } else {
+                toast('Erro: ' + err.message, 'error');
+            }
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Enviar feedback';
         }
     });
 
-    // --- Listar feedbacks ---
+    /* ========== LISTAR FEEDBACKS ========== */
     const list = document.getElementById('list');
 
     async function loadFeedbacks() {
         list.innerHTML = '<div class="loading">Carregando...</div>';
 
         const { data, error } = await supabase
-            .from('feedbacks')
-            .select('id, name, message, created_at')
+            .from(TABLE)
+            .select('id, name, message, image_url, created_at')
             .order('created_at', { ascending: false })
             .limit(50);
 
@@ -623,33 +1031,27 @@
             list.innerHTML = '<div class="empty">Não foi possível carregar os feedbacks.</div>';
             return;
         }
-
         if (!data.length) {
             list.innerHTML = '<div class="empty">Ainda não há feedbacks. Seja o primeiro! ✨</div>';
             return;
         }
 
-        list.innerHTML = data.map((f, i) => `
-            <div class="feedback-item" style="animation-delay:${i * 0.05}s">
-                <div class="feedback-header">
-                    <span class="feedback-name">${escapeHtml(f.name || 'Anônimo')}</span>
-                    <span class="feedback-date">${formatDate(f.created_at)}</span>
-                </div>
-                <div class="feedback-msg">${escapeHtml(f.message)}</div>
-            </div>
-        `).join('');
-    }
-
-    function escapeHtml(str) {
-        return String(str)
-            .replaceAll('&', '&amp;').replaceAll('<', '&lt;')
-            .replaceAll('>', '&gt;').replaceAll('"', '&quot;')
-            .replaceAll("'", '&#039;');
-    }
-    function formatDate(iso) {
-        return new Date(iso).toLocaleDateString('pt-BR', {
-            day: '2-digit', month: 'short', year: 'numeric'
-        });
+        list.innerHTML = data.map((f, i) => {
+            const msgHtml = sanitizeHtml(f.message);
+            const hasImg = !!f.image_url;
+            return `
+                <div class="feedback-item" style="animation-delay:${i * 0.05}s">
+                    <div class="feedback-header">
+                        <span class="feedback-name">
+                            ${escapeHtml(f.name || 'Anônimo')}
+                            ${hasImg ? '<span class="fb-badge">📷 imagem</span>' : ''}
+                        </span>
+                        <span class="feedback-date">${formatDate(f.created_at)}</span>
+                    </div>
+                    <div class="feedback-msg">${msgHtml}</div>
+                    ${hasImg ? `<img src="${escapeHtml(f.image_url)}" alt="" loading="lazy" style="max-width:100%;border-radius:12px;margin-top:10px;">` : ''}
+                </div>`;
+        }).join('');
     }
 </script>
 
