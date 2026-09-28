@@ -8,21 +8,20 @@
     :root {
         --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
         --bg: #f5f5f7;
-        --surface: rgba(255, 255, 255, 0.55);
-        --surface-strong: rgba(255, 255, 255, 0.75);
-        --border: rgba(255, 255, 255, 0.6);
         --text: #1d1d1f;
         --text-2: #86868b;
         --accent: #0071e3;
         --accent-hover: #0077ed;
-        --radius: 22px;
-        --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.06);
-        --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.14);
+        --border: rgba(255, 255, 255, 0.7);
+        --shadow-card: 0 20px 50px rgba(0, 0, 0, 0.10);
+        --shadow-card-hover: 0 32px 80px rgba(0, 0, 0, 0.16);
         --spring: cubic-bezier(0.32, 0.72, 0, 1);
         --smooth: cubic-bezier(0.25, 1, 0.5, 1);
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body { height: 100%; }
 
     body {
         font-family: var(--font);
@@ -37,174 +36,276 @@
         overflow-x: hidden;
     }
 
-    /* Fundo com blobs de cor (efeito Apple) */
+    /* Blobs decorativos de fundo */
     body::before, body::after {
         content: '';
         position: fixed;
         border-radius: 50%;
-        filter: blur(100px);
-        opacity: 0.5;
+        filter: blur(110px);
+        opacity: 0.55;
         z-index: -1;
-        animation: float 20s ease-in-out infinite;
+        pointer-events: none;
+        animation: float 22s ease-in-out infinite;
     }
     body::before {
-        width: 500px; height: 500px;
+        width: 560px; height: 560px;
         background: radial-gradient(circle, #a5c8ff 0%, transparent 70%);
-        top: -150px; left: -150px;
+        top: -180px; left: -180px;
     }
     body::after {
-        width: 600px; height: 600px;
+        width: 640px; height: 640px;
         background: radial-gradient(circle, #ffb8d9 0%, transparent 70%);
-        bottom: -200px; right: -200px;
-        animation-delay: -10s;
+        bottom: -220px; right: -220px;
+        animation-delay: -11s;
     }
-
     @keyframes float {
         0%, 100% { transform: translate(0, 0) scale(1); }
-        50% { transform: translate(30px, -30px) scale(1.1); }
+        50% { transform: translate(40px, -30px) scale(1.08); }
     }
 
+    /* Container de telas (grid para sobrepor) */
     .app {
         width: 100%;
-        max-width: 560px;
-        position: relative;
+        max-width: 760px;
+        display: grid;
     }
 
-    /* Sistema de telas — transição suave */
     .screen {
-        position: absolute;
-        inset: 0;
+        grid-area: 1 / 1;
         opacity: 0;
+        filter: blur(16px);
+        transform: scale(0.94);
         visibility: hidden;
-        transform: scale(0.96) translateY(10px);
-        transition:
-            opacity 0.5s var(--smooth),
-            transform 0.6s var(--spring),
-            visibility 0s linear 0.5s;
         pointer-events: none;
+        transition:
+            opacity 0.55s var(--smooth),
+            filter 0.55s var(--smooth),
+            transform 0.75s var(--spring),
+            visibility 0s linear 0.75s;
+        display: flex;
+        justify-content: center;
+        align-items: center;
     }
     .screen.active {
-        position: relative;
         opacity: 1;
+        filter: blur(0);
+        transform: scale(1);
         visibility: visible;
-        transform: scale(1) translateY(0);
-        transition:
-            opacity 0.5s var(--smooth),
-            transform 0.6s var(--spring),
-            visibility 0s;
         pointer-events: auto;
+        transition:
+            opacity 0.55s var(--smooth),
+            filter 0.55s var(--smooth),
+            transform 0.75s var(--spring),
+            visibility 0s;
     }
 
-    /* Cartão de vidro */
-    .glass {
-        background: var(--surface);
+    /* ---------- HOME ---------- */
+    .stage {
+        display: flex;
+        gap: 16px;
+        width: 100%;
+        align-items: stretch;
+        animation: stageIn 0.9s var(--spring) both;
+    }
+    @keyframes stageIn {
+        from { opacity: 0; transform: translateY(20px) scale(0.97); filter: blur(8px); }
+        to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    }
+
+    /* Peeks laterais (decorativos) */
+    .peek {
+        flex: 0 0 42px;
+        border-radius: 24px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.20));
+        border: 1px solid var(--border);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+        position: relative;
+        overflow: hidden;
+        animation: cardIn 0.8s var(--spring) both;
+    }
+    .peek::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg,
+            rgba(0, 113, 227, 0.18) 0%,
+            transparent 45%,
+            transparent 55%,
+            rgba(255, 94, 138, 0.18) 100%);
+    }
+    .peek:first-child { animation-delay: 0.25s; }
+    .peek:last-child  { animation-delay: 0.30s; }
+
+    /* Cards principais */
+    .card {
+        position: relative;
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 340px;
+        padding: 30px 28px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+        gap: 18px;
+
+        background: rgba(255, 255, 255, 0.55);
         backdrop-filter: blur(30px) saturate(180%);
         -webkit-backdrop-filter: blur(30px) saturate(180%);
         border: 1px solid var(--border);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow-lg);
+        border-radius: 28px;
+        box-shadow: var(--shadow-card);
+        cursor: pointer;
+        font-family: inherit;
+        color: inherit;
+        overflow: hidden;
+
+        transition:
+            transform 0.75s var(--spring),
+            box-shadow 0.75s var(--spring),
+            background 0.4s var(--smooth),
+            border-color 0.4s var(--smooth);
+        animation: cardIn 0.85s var(--spring) both;
+    }
+    .card:nth-of-type(1) { animation-delay: 0.10s; }
+    .card:nth-of-type(2) { animation-delay: 0.18s; }
+
+    @keyframes cardIn {
+        from { opacity: 0; transform: translateY(24px) scale(0.96); filter: blur(6px); }
+        to   { opacity: 1; transform: translateY(0)    scale(1);    filter: blur(0); }
+    }
+
+    .card::after {
+        /* brilho interno no topo */
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+        opacity: 0.7;
+        pointer-events: none;
+    }
+
+    .card:hover {
+        transform: translateY(-8px) scale(1.015);
+        box-shadow: var(--shadow-card-hover);
+        background: rgba(255, 255, 255, 0.72);
+        border-color: rgba(255, 255, 255, 0.95);
+    }
+    .card:active {
+        transform: scale(0.975);
+        transition-duration: 0.15s;
+    }
+    .card.opening {
+        transform: scale(1.05);
+        box-shadow: 0 45px 100px rgba(0, 113, 227, 0.35);
+        transition:
+            transform 0.55s var(--spring),
+            box-shadow 0.55s var(--spring);
+    }
+
+    .card-icon {
+        width: 58px;
+        height: 58px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        background: linear-gradient(135deg, #0071e3, #42a5ff);
+        box-shadow: 0 10px 24px rgba(0, 113, 227, 0.35);
+        flex-shrink: 0;
+    }
+    .card-icon.alt {
+        background: linear-gradient(135deg, #ff5e8a, #ff9e64);
+        box-shadow: 0 10px 24px rgba(255, 94, 138, 0.35);
+    }
+
+    .card h3 {
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        line-height: 1.15;
+    }
+    .card p {
+        font-size: 15px;
+        color: var(--text-2);
+        line-height: 1.5;
+    }
+
+    .card-arrow {
+        position: absolute;
+        bottom: 24px;
+        right: 24px;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.06);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        color: var(--text);
+        transition:
+            transform 0.55s var(--spring),
+            background 0.35s var(--smooth),
+            color 0.35s var(--smooth);
+    }
+    .card:hover .card-arrow {
+        transform: translateX(4px);
+        background: rgba(0, 113, 227, 0.15);
+        color: var(--accent);
+    }
+
+    /* ---------- TELAS INTERNAS ---------- */
+    .panel {
+        width: 100%;
+        max-width: 560px;
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(30px) saturate(180%);
+        -webkit-backdrop-filter: blur(30px) saturate(180%);
+        border: 1px solid var(--border);
+        border-radius: 26px;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.12);
         padding: 36px;
     }
 
     h1 {
-        font-size: 32px;
+        font-size: 30px;
         font-weight: 700;
-        letter-spacing: -0.8px;
+        letter-spacing: -0.7px;
         margin-bottom: 8px;
     }
     .subtitle {
         color: var(--text-2);
         font-size: 16px;
         line-height: 1.5;
-        margin-bottom: 28px;
+        margin-bottom: 26px;
     }
 
-    /* Cards de escolha */
-    .choice {
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-    }
-    .choice-card {
-        display: flex;
-        align-items: center;
-        gap: 18px;
-        padding: 22px 24px;
-        background: var(--surface-strong);
-        backdrop-filter: blur(20px) saturate(180%);
-        -webkit-backdrop-filter: blur(20px) saturate(180%);
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        cursor: pointer;
-        text-align: left;
-        font-family: var(--font);
-        transition: transform 0.5s var(--spring), box-shadow 0.5s var(--spring), background 0.3s var(--smooth);
-        box-shadow: var(--shadow-sm);
-    }
-    .choice-card:hover {
-        transform: translateY(-3px) scale(1.01);
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
-        background: rgba(255, 255, 255, 0.9);
-    }
-    .choice-card:active { transform: scale(0.98); }
-
-    .choice-icon {
-        width: 48px; height: 48px;
-        border-radius: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 22px;
-        flex-shrink: 0;
-        background: linear-gradient(135deg, var(--accent), #42a5ff);
-        color: white;
-        box-shadow: 0 6px 16px rgba(0, 113, 227, 0.3);
-    }
-    .choice-icon.alt {
-        background: linear-gradient(135deg, #ff5e8a, #ff9e64);
-        box-shadow: 0 6px 16px rgba(255, 94, 138, 0.3);
-    }
-    .choice-text h3 {
-        font-size: 17px;
-        font-weight: 600;
-        margin-bottom: 2px;
-        letter-spacing: -0.2px;
-    }
-    .choice-text p {
-        font-size: 14px;
-        color: var(--text-2);
-    }
-    .choice-arrow {
-        margin-left: auto;
-        color: var(--text-2);
-        font-size: 20px;
-        transition: transform 0.4s var(--spring);
-    }
-    .choice-card:hover .choice-arrow { transform: translateX(4px); }
-
-    /* Botão voltar */
     .back-btn {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        background: rgba(255, 255, 255, 0.6);
+        background: rgba(255, 255, 255, 0.65);
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
         border: 1px solid var(--border);
         color: var(--text);
-        font-family: var(--font);
+        font-family: inherit;
         font-size: 14px;
         font-weight: 500;
         padding: 8px 14px;
         border-radius: 100px;
         cursor: pointer;
-        margin-bottom: 20px;
-        transition: transform 0.4s var(--spring), background 0.3s;
+        margin-bottom: 22px;
+        transition: transform 0.45s var(--spring), background 0.3s var(--smooth);
     }
-    .back-btn:hover { background: rgba(255, 255, 255, 0.9); transform: translateX(-3px); }
+    .back-btn:hover { background: rgba(255,255,255,0.95); transform: translateX(-3px); }
     .back-btn:active { transform: scale(0.95); }
 
-    /* Formulário */
     .form-group { margin-bottom: 18px; }
     label {
         display: block;
@@ -217,18 +318,21 @@
     input, textarea {
         width: 100%;
         padding: 14px 16px;
-        font-family: var(--font);
+        font-family: inherit;
         font-size: 16px;
         color: var(--text);
-        background: rgba(255, 255, 255, 0.6);
+        background: rgba(255, 255, 255, 0.65);
         border: 1px solid rgba(0, 0, 0, 0.08);
         border-radius: 14px;
         outline: none;
-        transition: border-color 0.3s var(--smooth), box-shadow 0.3s var(--smooth), background 0.3s;
+        transition:
+            border-color 0.3s var(--smooth),
+            box-shadow 0.3s var(--smooth),
+            background 0.3s var(--smooth);
     }
     input:focus, textarea:focus {
         border-color: var(--accent);
-        background: rgba(255, 255, 255, 0.95);
+        background: rgba(255, 255, 255, 0.98);
         box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15);
     }
     textarea { resize: vertical; min-height: 120px; }
@@ -236,7 +340,7 @@
     .btn-primary {
         width: 100%;
         padding: 16px;
-        font-family: var(--font);
+        font-family: inherit;
         font-size: 17px;
         font-weight: 600;
         color: white;
@@ -245,10 +349,17 @@
         border-radius: 14px;
         cursor: pointer;
         margin-top: 8px;
-        transition: transform 0.3s var(--spring), background 0.3s var(--smooth);
-        box-shadow: 0 8px 24px rgba(0, 113, 227, 0.35);
+        transition:
+            transform 0.4s var(--spring),
+            background 0.3s var(--smooth),
+            box-shadow 0.4s var(--spring);
+        box-shadow: 0 10px 26px rgba(0, 113, 227, 0.35);
     }
-    .btn-primary:hover { background: var(--accent-hover); transform: translateY(-2px); box-shadow: 0 12px 28px rgba(0, 113, 227, 0.4); }
+    .btn-primary:hover {
+        background: var(--accent-hover);
+        transform: translateY(-2px);
+        box-shadow: 0 14px 32px rgba(0, 113, 227, 0.4);
+    }
     .btn-primary:active { transform: scale(0.97); }
     .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
@@ -260,21 +371,23 @@
         max-height: 60vh;
         overflow-y: auto;
         padding-right: 4px;
-        margin-top: 8px;
     }
     .feedbacks-list::-webkit-scrollbar { width: 6px; }
-    .feedbacks-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+    .feedbacks-list::-webkit-scrollbar-thumb {
+        background: rgba(0,0,0,0.15);
+        border-radius: 3px;
+    }
 
     .feedback-item {
-        background: rgba(255, 255, 255, 0.65);
+        background: rgba(255, 255, 255, 0.7);
         border: 1px solid var(--border);
         border-radius: 16px;
         padding: 18px 20px;
-        animation: slideIn 0.5s var(--spring) both;
+        animation: slideIn 0.55s var(--spring) both;
     }
     @keyframes slideIn {
-        from { opacity: 0; transform: translateY(12px); }
-        to { opacity: 1; transform: translateY(0); }
+        from { opacity: 0; transform: translateY(14px); filter: blur(4px); }
+        to   { opacity: 1; transform: translateY(0);    filter: blur(0); }
     }
     .feedback-header {
         display: flex;
@@ -283,22 +396,9 @@
         margin-bottom: 6px;
         gap: 12px;
     }
-    .feedback-name {
-        font-weight: 600;
-        font-size: 15px;
-        letter-spacing: -0.2px;
-    }
-    .feedback-date {
-        font-size: 12px;
-        color: var(--text-2);
-        white-space: nowrap;
-    }
-    .feedback-msg {
-        font-size: 15px;
-        line-height: 1.5;
-        color: #333;
-        word-wrap: break-word;
-    }
+    .feedback-name { font-weight: 600; font-size: 15px; }
+    .feedback-date { font-size: 12px; color: var(--text-2); white-space: nowrap; }
+    .feedback-msg { font-size: 15px; line-height: 1.5; color: #333; word-wrap: break-word; }
 
     .empty, .loading {
         text-align: center;
@@ -308,27 +408,44 @@
     }
 
     /* Tela de sucesso */
-    .success {
-        text-align: center;
-        padding: 20px 0;
-    }
+    .success { text-align: center; padding: 12px 0; }
     .success-icon {
-        width: 72px; height: 72px;
+        width: 76px;
+        height: 76px;
         margin: 0 auto 20px;
         border-radius: 50%;
         background: linear-gradient(135deg, #34c759, #30d158);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 36px;
+        font-size: 38px;
         color: white;
-        box-shadow: 0 12px 32px rgba(52, 199, 89, 0.4);
-        animation: pop 0.6s var(--spring);
+        box-shadow: 0 16px 40px rgba(52, 199, 89, 0.45);
+        animation: pop 0.7s var(--spring) both;
     }
     @keyframes pop {
-        0% { transform: scale(0); }
-        60% { transform: scale(1.15); }
-        100% { transform: scale(1); }
+        0%   { transform: scale(0);   opacity: 0; }
+        60%  { transform: scale(1.15); opacity: 1; }
+        100% { transform: scale(1);   opacity: 1; }
+    }
+
+    /* ---------- RESPONSIVO ---------- */
+    @media (max-width: 720px) {
+        .stage { gap: 12px; }
+        .peek { flex: 0 0 28px; border-radius: 20px; }
+        .card { min-height: 300px; padding: 24px 22px; border-radius: 24px; }
+        .card h3 { font-size: 20px; }
+        .card-icon { width: 50px; height: 50px; font-size: 22px; }
+    }
+    @media (max-width: 560px) {
+        body { padding: 16px; }
+        .stage { flex-direction: column; gap: 14px; }
+        .peek { display: none; }
+        .card { min-height: 180px; flex-direction: row; align-items: center; gap: 16px; }
+        .card p { margin-top: -4px; }
+        .card-arrow { bottom: 20px; right: 20px; }
+        .panel { padding: 26px 22px; }
+        h1 { font-size: 26px; }
     }
 </style>
 </head>
@@ -336,35 +453,32 @@
 
 <div class="app">
 
-    <!-- TELA 1: escolha -->
+    <!-- HOME -->
     <section class="screen active" id="screen-home">
-        <div class="glass">
-            <h1>Feedback</h1>
-            <p class="subtitle">Sua opinião constrói algo melhor. O que você quer fazer?</p>
-            <div class="choice">
-                <button class="choice-card" id="go-send">
-                    <div class="choice-icon">✍️</div>
-                    <div class="choice-text">
-                        <h3>Dar feedback</h3>
-                        <p>Compartilhe sua opinião com a gente</p>
-                    </div>
-                    <span class="choice-arrow">→</span>
-                </button>
-                <button class="choice-card" id="go-view">
-                    <div class="choice-icon alt">💬</div>
-                    <div class="choice-text">
-                        <h3>Ver feedbacks</h3>
-                        <p>Veja o que as pessoas estão dizendo</p>
-                    </div>
-                    <span class="choice-arrow">→</span>
-                </button>
-            </div>
+        <div class="stage">
+            <div class="peek"></div>
+
+            <button class="card" data-target="send">
+                <div class="card-icon">✍️</div>
+                <h3>Dar<br>feedback</h3>
+                <p>Compartilhe sua opinião com a gente.</p>
+                <span class="card-arrow">→</span>
+            </button>
+
+            <button class="card" data-target="view">
+                <div class="card-icon alt">💬</div>
+                <h3>Ver<br>feedbacks</h3>
+                <p>Veja o que as pessoas estão dizendo.</p>
+                <span class="card-arrow">→</span>
+            </button>
+
+            <div class="peek"></div>
         </div>
     </section>
 
-    <!-- TELA 2: enviar -->
+    <!-- ENVIAR -->
     <section class="screen" id="screen-send">
-        <div class="glass">
+        <div class="panel">
             <button class="back-btn" data-back>← Voltar</button>
             <h1>Envie seu feedback</h1>
             <p class="subtitle">Conte pra gente o que você achou.</p>
@@ -386,9 +500,9 @@
         </div>
     </section>
 
-    <!-- TELA 3: sucesso -->
+    <!-- SUCESSO -->
     <section class="screen" id="screen-success">
-        <div class="glass">
+        <div class="panel">
             <div class="success">
                 <div class="success-icon">✓</div>
                 <h1>Obrigado!</h1>
@@ -398,9 +512,9 @@
         </div>
     </section>
 
-    <!-- TELA 4: ver feedbacks -->
+    <!-- VER -->
     <section class="screen" id="screen-view">
-        <div class="glass">
+        <div class="panel">
             <button class="back-btn" data-back>← Voltar</button>
             <h1>Feedbacks</h1>
             <p class="subtitle">O que as pessoas estão dizendo.</p>
@@ -415,13 +529,11 @@
 <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-    // ⚠️ COLE AQUI SUA PROJECT URL (ex: https://xxxxx.supabase.co)
-    const SUPABASE_URL = 'COLE_SUA_PROJECT_URL_AQUI';
+    const SUPABASE_URL = 'https://rqeakuvigmxtssadmdov.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_B7R-o2Ekd3X6N2fpMgr9PQ_UPZwbmKk';
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // --- Navegação entre telas ---
     const screens = {
         home: document.getElementById('screen-home'),
         send: document.getElementById('screen-send'),
@@ -429,16 +541,37 @@
         view: document.getElementById('screen-view'),
     };
 
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
     function goTo(name) {
         Object.values(screens).forEach(s => s.classList.remove('active'));
         screens[name].classList.add('active');
     }
 
-    document.getElementById('go-send').addEventListener('click', () => goTo('send'));
-    document.getElementById('go-view').addEventListener('click', () => {
-        goTo('view');
-        loadFeedbacks();
+    // Cards da home — abertura suave
+    document.querySelectorAll('.card[data-target]').forEach(card => {
+        card.addEventListener('click', async () => {
+            const target = card.dataset.target;
+
+            // 1) anima o card clicado
+            card.classList.add('opening');
+
+            // 2) espera um pouco para o gesto aparecer
+            await sleep(190);
+
+            // 3) troca a tela
+            goTo(target);
+
+            // 4) limpa o estado do card quando voltar
+            await sleep(750);
+            card.classList.remove('opening');
+
+            // 5) se for "ver", carrega a lista
+            if (target === 'view') loadFeedbacks();
+        });
     });
+
+    // Botões "voltar"
     document.querySelectorAll('[data-back]').forEach(btn => {
         btn.addEventListener('click', () => goTo('home'));
     });
@@ -461,20 +594,19 @@
 
         const { error } = await supabase.from('feedbacks').insert([payload]);
 
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Enviar feedback';
+
         if (error) {
             console.error(error);
             alert('Erro ao enviar. Tente novamente.');
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Enviar feedback';
         } else {
             form.reset();
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Enviar feedback';
             goTo('success');
         }
     });
 
-    // --- Carregar feedbacks ---
+    // --- Listar feedbacks ---
     const list = document.getElementById('list');
 
     async function loadFeedbacks() {
@@ -498,7 +630,7 @@
         }
 
         list.innerHTML = data.map((f, i) => `
-            <div class="feedback-item" style="animation-delay: ${i * 0.05}s">
+            <div class="feedback-item" style="animation-delay:${i * 0.05}s">
                 <div class="feedback-header">
                     <span class="feedback-name">${escapeHtml(f.name || 'Anônimo')}</span>
                     <span class="feedback-date">${formatDate(f.created_at)}</span>
@@ -510,16 +642,14 @@
 
     function escapeHtml(str) {
         return String(str)
-            .replaceAll('&', '&amp;')
-            .replaceAll('<', '&lt;')
-            .replaceAll('>', '&gt;')
-            .replaceAll('"', '&quot;')
+            .replaceAll('&', '&amp;').replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;').replaceAll('"', '&quot;')
             .replaceAll("'", '&#039;');
     }
-
     function formatDate(iso) {
-        const d = new Date(iso);
-        return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+        return new Date(iso).toLocaleDateString('pt-BR', {
+            day: '2-digit', month: 'short', year: 'numeric'
+        });
     }
 </script>
 
