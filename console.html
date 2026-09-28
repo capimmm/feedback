@@ -3,720 +3,1191 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Console de Diagnóstico — Feedback</title>
+<title>Admin — Feedback</title>
 <style>
     :root {
         --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
-        --mono: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+        --mono: 'SF Mono', Menlo, Monaco, Consolas, monospace;
         --bg: #f5f5f7;
-        --surface: rgba(255, 255, 255, 0.7);
-        --border: rgba(255, 255, 255, 0.7);
+        --surface: rgba(255,255,255,0.6);
+        --surface-2: rgba(255,255,255,0.78);
+        --border: rgba(255,255,255,0.75);
         --text: #1d1d1f;
         --text-2: #86868b;
+        --accent: #0071e3;
+        --accent-hover: #0077ed;
         --green: #30d158;
-        --yellow: #ffcc00;
         --red: #ff453a;
-        --blue: #0071e3;
+        --yellow: #ffcc00;
         --purple: #af52de;
+        --radius: 22px;
+        --shadow-sm: 0 6px 20px rgba(0,0,0,0.07);
+        --shadow-lg: 0 24px 70px rgba(0,0,0,0.14);
         --spring: cubic-bezier(0.32, 0.72, 0, 1);
         --smooth: cubic-bezier(0.25, 1, 0.5, 1);
     }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { min-height: 100%; }
     body {
         font-family: var(--font);
         background: var(--bg);
         color: var(--text);
         min-height: 100vh;
-        padding: 32px 20px;
+        padding: 28px 20px;
         -webkit-font-smoothing: antialiased;
         overflow-x: hidden;
     }
-
     body::before, body::after {
-        content: '';
-        position: fixed;
-        border-radius: 50%;
-        filter: blur(120px);
-        opacity: 0.4;
-        z-index: -1;
-        pointer-events: none;
+        content:''; position: fixed; border-radius:50%;
+        filter: blur(120px); opacity:.5; z-index:-1; pointer-events:none;
+        animation: float 22s ease-in-out infinite;
     }
-    body::before {
-        width: 500px; height: 500px;
-        background: radial-gradient(circle, #a5c8ff, transparent 70%);
-        top: -180px; left: -180px;
+    body::before { width:560px;height:560px; background: radial-gradient(circle,#a5c8ff,transparent 70%); top:-180px; left:-180px; }
+    body::after  { width:640px;height:640px; background: radial-gradient(circle,#ffb8d9,transparent 70%); bottom:-220px; right:-220px; animation-delay:-11s; }
+    @keyframes float { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(40px,-30px) scale(1.08);} }
+
+    .app { max-width: 900px; margin: 0 auto; display: grid; }
+    .screen {
+        grid-area: 1/1;
+        opacity:0; filter: blur(14px);
+        transform: scale(0.96) translateY(8px);
+        visibility: hidden; pointer-events:none;
+        transition: opacity .5s var(--smooth), filter .5s var(--smooth),
+                    transform .7s var(--spring), visibility 0s linear .7s;
+        width:100%;
     }
-    body::after {
-        width: 600px; height: 600px;
-        background: radial-gradient(circle, #ffb8d9, transparent 70%);
-        bottom: -220px; right: -220px;
+    .screen.active {
+        opacity:1; filter: blur(0);
+        transform: scale(1) translateY(0);
+        visibility: visible; pointer-events:auto;
+        transition: opacity .5s var(--smooth), filter .5s var(--smooth),
+                    transform .7s var(--spring), visibility 0s;
     }
 
-    .wrap {
-        max-width: 900px;
-        margin: 0 auto;
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-    }
-
-    .panel {
+    /* ---------- Glass card ---------- */
+    .glass {
         background: var(--surface);
         backdrop-filter: blur(30px) saturate(180%);
         -webkit-backdrop-filter: blur(30px) saturate(180%);
         border: 1px solid var(--border);
-        border-radius: 22px;
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
-        padding: 28px;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-lg);
+        padding: 30px;
     }
+    .glass + .glass { margin-top: 20px; }
 
-    h1 {
-        font-size: 26px;
-        font-weight: 700;
-        letter-spacing: -0.6px;
-        margin-bottom: 6px;
-    }
-    .subtitle {
-        color: var(--text-2);
-        font-size: 14px;
-        margin-bottom: 20px;
-    }
+    h1 { font-size: 28px; font-weight: 700; letter-spacing: -.6px; margin-bottom: 6px; }
+    h2 { font-size: 17px; font-weight: 600; letter-spacing: -.3px; margin-bottom: 14px; display:flex; align-items:center; gap:8px; }
+    .subtitle { color: var(--text-2); font-size: 14px; line-height:1.5; margin-bottom: 22px; }
 
-    .status-bar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-bottom: 20px;
-    }
-    .status-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 14px;
-        border-radius: 100px;
-        font-size: 13px;
-        font-weight: 600;
-        background: rgba(255,255,255,0.6);
-        border: 1px solid rgba(0,0,0,0.06);
-        transition: all 0.3s var(--smooth);
-    }
-    .status-chip .dot {
-        width: 8px; height: 8px;
-        border-radius: 50%;
-        background: var(--text-2);
-        transition: background 0.3s;
-    }
-    .status-chip.ok    { color: #1a7f37; background: rgba(48, 209, 88, 0.12); border-color: rgba(48,209,88,0.3); }
-    .status-chip.ok .dot    { background: var(--green); box-shadow: 0 0 8px rgba(48,209,88,0.6); }
-    .status-chip.warn  { color: #8a6d00; background: rgba(255, 204, 0, 0.12); border-color: rgba(255,204,0,0.35); }
-    .status-chip.warn .dot  { background: var(--yellow); }
-    .status-chip.error { color: #b3261e; background: rgba(255, 69, 58, 0.12); border-color: rgba(255,69,58,0.3); }
-    .status-chip.error .dot { background: var(--red); box-shadow: 0 0 8px rgba(255,69,58,0.6); }
-    .status-chip.run   { color: var(--blue); background: rgba(0, 113, 227, 0.12); border-color: rgba(0,113,227,0.3); }
-    .status-chip.run .dot   { background: var(--blue); animation: pulse 1s infinite; }
-
-    @keyframes pulse {
-        0%, 100% { opacity: 1; transform: scale(1); }
-        50%      { opacity: 0.5; transform: scale(1.4); }
-    }
-
-    .btn {
-        padding: 12px 22px;
-        font-family: inherit;
-        font-size: 15px;
-        font-weight: 600;
-        color: white;
-        background: var(--blue);
-        border: none;
-        border-radius: 12px;
-        cursor: pointer;
-        transition: transform 0.35s var(--spring), background 0.25s, box-shadow 0.35s var(--spring);
-        box-shadow: 0 8px 20px rgba(0, 113, 227, 0.3);
-    }
-    .btn:hover { background: #0077ed; transform: translateY(-2px); box-shadow: 0 12px 26px rgba(0,113,227,0.4); }
-    .btn:active { transform: scale(0.96); }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-    .btn-ghost {
-        background: rgba(255,255,255,0.7);
-        color: var(--text);
-        border: 1px solid rgba(0,0,0,0.08);
-        box-shadow: none;
-    }
-    .btn-ghost:hover { background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-
-    .actions {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
-    /* Log terminal */
-    .terminal {
-        background: #0b0d10;
-        border-radius: 16px;
-        padding: 20px;
-        font-family: var(--mono);
-        font-size: 13px;
-        line-height: 1.65;
-        color: #e5e7eb;
-        max-height: 480px;
-        overflow-y: auto;
-        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05), 0 10px 30px rgba(0,0,0,0.15);
-    }
-    .terminal::-webkit-scrollbar { width: 8px; }
-    .terminal::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
-
-    .log-line {
-        display: flex;
-        gap: 10px;
-        padding: 3px 0;
-        animation: lineIn 0.35s var(--spring);
-        word-break: break-word;
-    }
-    @keyframes lineIn {
-        from { opacity: 0; transform: translateY(4px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
-    .log-time { color: #6b7280; flex-shrink: 0; }
-    .log-tag  {
-        flex-shrink: 0;
-        font-weight: 700;
-        padding: 0 6px;
-        border-radius: 4px;
-        font-size: 11px;
-        align-self: center;
-        letter-spacing: 0.5px;
-    }
-    .log-tag.ok    { background: rgba(48,209,88,0.2); color: #4ade80; }
-    .log-tag.info  { background: rgba(0,113,227,0.2); color: #60a5fa; }
-    .log-tag.warn  { background: rgba(255,204,0,0.2); color: #fbbf24; }
-    .log-tag.error { background: rgba(255,69,58,0.2); color: #f87171; }
-    .log-tag.data  { background: rgba(175,82,222,0.2); color: #c084fc; }
-    .log-msg { color: #e5e7eb; }
-    .log-msg .value { color: #93c5fd; }
-    .log-msg .ok-text { color: #4ade80; font-weight: 600; }
-    .log-msg .err-text { color: #f87171; font-weight: 600; }
-
-    /* Detalhes das verificações */
-    .checks {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-    .check-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 14px 18px;
-        background: rgba(255,255,255,0.6);
-        border: 1px solid rgba(0,0,0,0.05);
-        border-radius: 14px;
-        font-size: 14px;
-        transition: all 0.3s var(--smooth);
-    }
-    .check-item .icon {
-        width: 26px; height: 26px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-        color: white;
-        flex-shrink: 0;
-        background: #c7c7cc;
-    }
-    .check-item.ok    .icon { background: var(--green); }
-    .check-item.warn  .icon { background: var(--yellow); color: #1d1d1f; }
-    .check-item.error .icon { background: var(--red); }
-    .check-item.run   .icon { background: var(--blue); }
-    .check-item .label { font-weight: 500; }
-    .check-item .detail {
-        margin-left: auto;
-        color: var(--text-2);
-        font-size: 13px;
-        font-family: var(--mono);
-        text-align: right;
-        max-width: 55%;
+    /* ---------- Home cards ---------- */
+    .stage { display: flex; gap: 16px; align-items: stretch; }
+    .big-card {
+        position: relative; flex: 1 1 0; min-width: 0; min-height: 300px;
+        padding: 28px 26px; display: flex; flex-direction: column;
+        align-items: flex-start; gap: 16px; text-align: left;
+        background: var(--surface);
+        backdrop-filter: blur(30px) saturate(180%);
+        -webkit-backdrop-filter: blur(30px) saturate(180%);
+        border: 1px solid var(--border);
+        border-radius: 26px;
+        box-shadow: var(--shadow-sm);
+        cursor: pointer; font-family: inherit; color: inherit;
         overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        transition: transform .7s var(--spring), box-shadow .7s var(--spring),
+                    background .35s var(--smooth), border-color .35s var(--smooth);
+        animation: cardIn .8s var(--spring) both;
     }
+    .big-card:nth-child(1) { animation-delay: .08s; }
+    .big-card:nth-child(2) { animation-delay: .16s; }
+    @keyframes cardIn {
+        from { opacity:0; transform: translateY(24px) scale(.96); filter: blur(6px); }
+        to   { opacity:1; transform: translateY(0) scale(1); filter: blur(0); }
+    }
+    .big-card::after {
+        content:''; position:absolute; top:0; left:0; right:0; height:1px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,.9), transparent);
+        opacity:.7; pointer-events:none;
+    }
+    .big-card:hover {
+        transform: translateY(-8px) scale(1.015);
+        box-shadow: 0 30px 80px rgba(0,0,0,.16);
+        background: rgba(255,255,255,.78);
+        border-color: rgba(255,255,255,.95);
+    }
+    .big-card:active { transform: scale(.975); transition-duration:.15s; }
+    .big-card .icon {
+        width: 58px; height: 58px; border-radius: 18px;
+        display:flex; align-items:center; justify-content:center;
+        font-size: 26px; color: white; flex-shrink:0;
+        background: linear-gradient(135deg, #0071e3, #42a5ff);
+        box-shadow: 0 10px 24px rgba(0,113,227,.35);
+    }
+    .big-card .icon.alt {
+        background: linear-gradient(135deg, #af52de, #ff5e8a);
+        box-shadow: 0 10px 24px rgba(175,82,222,.35);
+    }
+    .big-card h3 { font-size: 22px; font-weight: 700; letter-spacing: -.4px; line-height: 1.15; }
+    .big-card p { font-size: 14px; color: var(--text-2); line-height: 1.5; }
+    .big-card .arrow {
+        position: absolute; bottom: 22px; right: 22px;
+        width: 36px; height: 36px; border-radius: 50%;
+        background: rgba(0,0,0,.06);
+        display:flex; align-items:center; justify-content:center;
+        font-size: 15px;
+        transition: transform .5s var(--spring), background .3s, color .3s;
+    }
+    .big-card:hover .arrow { transform: translateX(4px); background: rgba(0,113,227,.15); color: var(--accent); }
 
-    /* Grid de infos */
-    .info-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 10px;
+    /* ---------- Botões ---------- */
+    .btn {
+        padding: 12px 20px; font-family: inherit; font-size: 15px; font-weight: 600;
+        color: white; background: var(--accent); border: none; border-radius: 12px;
+        cursor: pointer;
+        transition: transform .35s var(--spring), background .25s, box-shadow .35s var(--spring);
+        box-shadow: 0 8px 20px rgba(0,113,227,.3);
+        display: inline-flex; align-items: center; gap: 8px;
     }
-    .info-item {
-        padding: 12px 16px;
-        background: rgba(255,255,255,0.55);
-        border: 1px solid rgba(0,0,0,0.05);
-        border-radius: 12px;
+    .btn:hover { background: var(--accent-hover); transform: translateY(-2px); box-shadow: 0 12px 26px rgba(0,113,227,.4); }
+    .btn:active { transform: scale(.96); }
+    .btn:disabled { opacity:.5; cursor: not-allowed; transform: none; }
+    .btn.ghost {
+        background: var(--surface-2); color: var(--text);
+        border: 1px solid rgba(0,0,0,.06); box-shadow: none;
     }
-    .info-item .key {
-        font-size: 11px;
-        color: var(--text-2);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 4px;
-    }
-    .info-item .val {
-        font-family: var(--mono);
-        font-size: 13px;
-        word-break: break-all;
-        color: var(--text);
-    }
+    .btn.ghost:hover { background: #fff; box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+    .btn.danger { background: var(--red); box-shadow: 0 8px 20px rgba(255,69,58,.3); }
+    .btn.danger:hover { background: #ff5b50; box-shadow: 0 12px 26px rgba(255,69,58,.4); }
+    .btn.small { padding: 8px 14px; font-size: 13px; }
 
-    h2 {
-        font-size: 17px;
-        font-weight: 600;
-        letter-spacing: -0.3px;
-        margin-bottom: 14px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
+    .back-btn {
+        display:inline-flex; align-items:center; gap:6px;
+        background: var(--surface-2);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--border);
+        color: var(--text); font-family: inherit; font-size:14px; font-weight:500;
+        padding: 8px 14px; border-radius: 100px; cursor: pointer;
+        margin-bottom: 20px;
+        transition: transform .45s var(--spring), background .3s;
     }
+    .back-btn:hover { background: #fff; transform: translateX(-3px); }
+    .back-btn:active { transform: scale(.95); }
 
-    .section-title-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 14px;
-        flex-wrap: wrap;
-        gap: 10px;
+    .toolbar { display:flex; gap:10px; flex-wrap: wrap; align-items: center; }
+
+    /* ---------- Lista de feedbacks ---------- */
+    .fb-list { display:flex; flex-direction: column; gap: 10px; }
+    .fb-card {
+        position: relative;
+        display: flex; gap: 14px; align-items: flex-start;
+        padding: 16px 18px;
+        background: var(--surface-2);
+        border: 1px solid rgba(0,0,0,.05);
+        border-radius: 16px;
+        cursor: pointer;
+        transition: transform .5s var(--spring), box-shadow .5s var(--spring),
+                    background .25s var(--smooth), border-color .25s;
+        animation: slideIn .5s var(--spring) both;
     }
-    .section-title-row h2 { margin-bottom: 0; }
+    @keyframes slideIn {
+        from { opacity:0; transform: translateY(10px); filter: blur(4px); }
+        to   { opacity:1; transform: translateY(0); filter: blur(0); }
+    }
+    .fb-card:hover {
+        transform: translateY(-3px) scale(1.005);
+        box-shadow: 0 14px 34px rgba(0,0,0,.10);
+        background: #fff;
+        border-color: rgba(0,113,227,.25);
+    }
+    .fb-card:active { transform: scale(.99); }
 
-    .loading-spin {
-        display: inline-block;
-        width: 14px; height: 14px;
-        border: 2px solid rgba(0,0,0,0.15);
-        border-top-color: var(--blue);
-        border-radius: 50%;
-        animation: spin 0.8s linear infinite;
+    .avatar {
+        width: 42px; height: 42px; border-radius: 50%;
+        display:flex; align-items:center; justify-content:center;
+        font-weight: 600; font-size: 15px; color: white;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, #0071e3, #42a5ff);
+    }
+    .avatar.alt { background: linear-gradient(135deg, #ff5e8a, #ff9e64); }
+    .avatar.alt2 { background: linear-gradient(135deg, #af52de, #5856d6); }
+    .avatar.alt3 { background: linear-gradient(135deg, #30d158, #34aadc); }
+
+    .fb-body { flex:1; min-width: 0; }
+    .fb-head { display:flex; align-items: baseline; gap:10px; margin-bottom: 4px; flex-wrap: wrap; }
+    .fb-name { font-weight: 600; font-size: 15px; }
+    .fb-date { font-size: 12px; color: var(--text-2); }
+    .fb-msg {
+        font-size: 14px; color: #333; line-height: 1.45;
+        overflow: hidden; text-overflow: ellipsis;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    }
+    .fb-thumb {
+        width: 52px; height: 52px; border-radius: 10px; object-fit: cover;
+        flex-shrink: 0; background: rgba(0,0,0,.05);
+    }
+    .fb-badge {
+        display:inline-flex; align-items:center; gap:4px;
+        font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing:.4px;
+        padding: 2px 7px; border-radius: 100px;
+        background: rgba(0,113,227,.12); color: var(--accent);
+    }
+    .fb-badge.img { background: rgba(175,82,222,.15); color: var(--purple); }
+
+    .empty, .loading {
+        text-align:center; padding: 50px 20px;
+        color: var(--text-2); font-size: 14px;
+    }
+    .loading::before {
+        content: ''; display:inline-block; width:16px; height:16px;
+        border: 2px solid rgba(0,0,0,.15); border-top-color: var(--accent);
+        border-radius: 50%; animation: spin .8s linear infinite;
+        margin-right: 8px; vertical-align: middle;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ---------- Stats grid (avançado) ---------- */
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    .stat {
+        padding: 16px 18px;
+        background: var(--surface-2);
+        border: 1px solid rgba(0,0,0,.05);
+        border-radius: 16px;
+        transition: transform .4s var(--spring), box-shadow .4s var(--spring);
+    }
+    .stat:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,.08); }
+    .stat .label {
+        font-size: 11px; color: var(--text-2); text-transform: uppercase;
+        letter-spacing: .5px; margin-bottom: 6px;
+    }
+    .stat .value {
+        font-size: 24px; font-weight: 700; letter-spacing: -.5px;
+        font-variant-numeric: tabular-nums;
+    }
+    .stat .value.small { font-size: 16px; }
+
+    /* ---------- Filtros ---------- */
+    .filters {
+        display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+        margin-bottom: 16px;
+    }
+    .search {
+        flex: 1; min-width: 200px;
+        padding: 12px 16px 12px 40px;
+        font-family: inherit; font-size: 15px; color: var(--text);
+        background: var(--surface-2);
+        border: 1px solid rgba(0,0,0,.06);
+        border-radius: 12px; outline: none;
+        transition: border-color .3s, box-shadow .3s, background .3s;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2386868b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: 14px center;
+    }
+    .search:focus {
+        border-color: var(--accent);
+        background-color: #fff;
+        box-shadow: 0 0 0 4px rgba(0,113,227,.15);
+    }
+    .chip {
+        padding: 8px 14px; font-family: inherit; font-size: 13px; font-weight: 500;
+        color: var(--text); background: var(--surface-2);
+        border: 1px solid rgba(0,0,0,.06); border-radius: 100px;
+        cursor: pointer;
+        transition: all .3s var(--smooth);
+    }
+    .chip:hover { background: #fff; }
+    .chip.on { background: var(--accent); color: white; border-color: transparent; box-shadow: 0 6px 16px rgba(0,113,227,.3); }
+
+    /* ---------- Tabela (avançado) ---------- */
+    .table-wrap { overflow-x: auto; border-radius: 14px; border: 1px solid rgba(0,0,0,.05); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead { background: rgba(0,0,0,.03); }
+    th {
+        text-align: left; padding: 12px 14px;
+        font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing:.4px;
+        color: var(--text-2); white-space: nowrap;
+    }
+    td {
+        padding: 12px 14px; border-top: 1px solid rgba(0,0,0,.05);
+        vertical-align: top; max-width: 260px;
+    }
+    tr.clickable { cursor: pointer; transition: background .25s; }
+    tr.clickable:hover { background: rgba(0,113,227,.05); }
+    td .mono { font-family: var(--mono); font-size: 12px; color: var(--text-2); }
+    td.trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* ---------- Modal sheet ---------- */
+    .backdrop {
+        position: fixed; inset:0;
+        background: rgba(0,0,0,.32);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        opacity: 0; visibility: hidden;
+        transition: opacity .4s var(--smooth), visibility 0s linear .4s;
+        z-index: 90;
+    }
+    .backdrop.show { opacity:1; visibility: visible; transition-delay:0s; z-index: 100; }
+
+    .sheet {
+        position: fixed; left: 50%; bottom: 0;
+        width: min(680px, calc(100% - 24px));
+        max-height: 88vh;
+        transform: translate(-50%, 110%);
+        background: rgba(255,255,255,.85);
+        backdrop-filter: blur(40px) saturate(180%);
+        -webkit-backdrop-filter: blur(40px) saturate(180%);
+        border: 1px solid var(--border);
+        border-radius: 26px 26px 0 0;
+        box-shadow: 0 -20px 60px rgba(0,0,0,.18);
+        z-index: 101;
+        display: flex; flex-direction: column;
+        transition: transform .7s var(--spring);
+        overflow: hidden;
+    }
+    .sheet.show { transform: translate(-50%, 0); }
+    .sheet-header {
+        padding: 18px 24px 12px;
+        display: flex; align-items: center; justify-content: space-between;
+        border-bottom: 1px solid rgba(0,0,0,.05);
+        flex-shrink: 0;
+    }
+    .sheet-header h3 { font-size: 18px; font-weight: 700; letter-spacing: -.3px; }
+    .sheet-close {
+        width: 30px; height: 30px; border-radius: 50%;
+        background: rgba(0,0,0,.06); border: none; cursor: pointer;
+        display:flex; align-items:center; justify-content:center;
+        font-size: 16px; color: var(--text);
+        transition: background .25s, transform .35s var(--spring);
+    }
+    .sheet-close:hover { background: rgba(0,0,0,.12); }
+    .sheet-close:active { transform: scale(.9); }
+    .sheet-body { padding: 22px 24px; overflow-y: auto; }
+    .sheet-body::-webkit-scrollbar { width: 6px; }
+    .sheet-body::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 3px; }
+    .sheet-footer {
+        padding: 16px 24px; border-top: 1px solid rgba(0,0,0,.05);
+        display:flex; justify-content: flex-end; gap: 10px;
+        background: rgba(255,255,255,.5); flex-shrink: 0;
+    }
+
+    /* Detail */
+    .detail-row {
+        display: flex; gap: 12px; padding: 12px 0;
+        border-bottom: 1px solid rgba(0,0,0,.05);
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-row .k {
+        min-width: 90px; font-size: 12px; color: var(--text-2);
+        text-transform: uppercase; letter-spacing: .4px; font-weight: 600;
+        padding-top: 2px;
+    }
+    .detail-row .v { font-size: 15px; flex: 1; word-break: break-word; }
+    .detail-row .v.msg { line-height: 1.6; white-space: pre-wrap; }
+    .detail-row .v.mono { font-family: var(--mono); font-size: 13px; color: var(--text-2); }
+    .detail-img {
+        max-width: 100%; border-radius: 14px; margin-top: 8px;
+        box-shadow: 0 8px 24px rgba(0,0,0,.1);
+    }
+
+    /* Rich editor */
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+        display:block; font-size: 12px; font-weight:600; color: var(--text-2);
+        text-transform: uppercase; letter-spacing:.4px; margin-bottom: 6px; padding-left:4px;
+    }
+    .form-group input, .form-group textarea {
+        width:100%; padding: 12px 16px;
+        font-family: inherit; font-size: 15px; color: var(--text);
+        background: rgba(255,255,255,.7);
+        border: 1px solid rgba(0,0,0,.08);
+        border-radius: 12px; outline: none;
+        transition: border-color .3s, box-shadow .3s, background .3s;
+    }
+    .form-group input:focus {
+        border-color: var(--accent); background: #fff;
+        box-shadow: 0 0 0 4px rgba(0,113,227,.15);
+    }
+
+    .editor {
+        border: 1px solid rgba(0,0,0,.08); border-radius: 12px;
+        background: rgba(255,255,255,.7); overflow: hidden;
+        transition: border-color .3s, box-shadow .3s;
+    }
+    .editor:focus-within { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(0,113,227,.15); }
+    .editor-toolbar {
+        display:flex; gap:4px; flex-wrap: wrap;
+        padding: 8px 10px;
+        background: rgba(0,0,0,.02);
+        border-bottom: 1px solid rgba(0,0,0,.06);
+    }
+    .editor-toolbar button {
+        width: 32px; height: 32px; border-radius: 8px;
+        border: none; background: transparent; cursor: pointer;
+        font-family: inherit; font-size: 14px; color: var(--text);
+        display:flex; align-items:center; justify-content:center;
+        transition: background .2s, transform .35s var(--spring);
+    }
+    .editor-toolbar button:hover { background: rgba(0,113,227,.12); color: var(--accent); }
+    .editor-toolbar button:active { transform: scale(.9); }
+    .editor-toolbar button.sep { width: 1px; background: rgba(0,0,0,.1); margin: 0 4px; cursor: default; }
+    .editor-toolbar button.sep:hover { background: rgba(0,0,0,.1); transform:none; }
+    .editor-content {
+        min-height: 140px; padding: 14px 16px;
+        font-size: 15px; line-height: 1.55; outline: none;
+        word-break: break-word;
+    }
+    .editor-content:empty::before {
+        content: attr(data-placeholder); color: var(--text-2); pointer-events: none;
+    }
+    .editor-content img { max-width: 100%; border-radius: 10px; margin: 6px 0; }
+    .editor-content b, .editor-content strong { font-weight: 600; }
+    .editor-content ul, .editor-content ol { padding-left: 22px; margin: 4px 0; }
+
+    /* Preview de imagem */
+    .img-preview {
+        position: relative; display:inline-block; margin-top: 10px;
+    }
+    .img-preview img {
+        max-width: 180px; max-height: 140px;
+        border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,.12);
+    }
+    .img-preview .remove {
+        position:absolute; top: -8px; right: -8px;
+        width: 26px; height: 26px; border-radius: 50%;
+        background: var(--red); color: white; border: none; cursor: pointer;
+        display:flex; align-items:center; justify-content:center;
+        font-size: 14px; box-shadow: 0 4px 12px rgba(255,69,58,.4);
+        transition: transform .3s var(--spring);
+    }
+    .img-preview .remove:hover { transform: scale(1.1); }
+
+    /* Drop zone */
+    .dropzone {
+        border: 2px dashed rgba(0,113,227,.3); border-radius: 14px;
+        padding: 22px; text-align: center;
+        background: rgba(0,113,227,.04);
+        cursor: pointer;
+        transition: border-color .3s, background .3s;
+        margin-top: 6px;
+    }
+    .dropzone:hover, .dropzone.over {
+        border-color: var(--accent);
+        background: rgba(0,113,227,.08);
+    }
+    .dropzone p { font-size: 13px; color: var(--text-2); }
+    .dropzone p b { color: var(--accent); }
+
+    /* Toast */
+    .toast {
+        position: fixed; left: 50%; bottom: 30px;
+        transform: translate(-50%, 80px);
+        background: #1d1d1f; color: white;
+        padding: 12px 20px; border-radius: 100px;
+        font-size: 14px; font-weight: 500;
+        box-shadow: 0 12px 40px rgba(0,0,0,.3);
+        z-index: 200; opacity: 0;
+        transition: transform .5s var(--spring), opacity .4s;
+        pointer-events: none;
+        display:flex; align-items: center; gap: 8px;
+    }
+    .toast.show { transform: translate(-50%, 0); opacity: 1; }
+    .toast.ok::before { content: '✓'; color: var(--green); font-weight: 700; }
+    .toast.error::before { content: '✕'; color: var(--red); font-weight: 700; }
+
+    /* Diag chips */
+    .diag-chips { display:flex; flex-wrap: wrap; gap: 10px; }
+    .diag-chip {
+        display:inline-flex; align-items:center; gap:8px;
+        padding: 8px 14px; border-radius: 100px;
+        font-size: 13px; font-weight: 600;
+        background: var(--surface-2); border: 1px solid rgba(0,0,0,.06);
+        transition: all .3s var(--smooth);
+    }
+    .diag-chip .dot { width:8px; height:8px; border-radius: 50%; background: var(--text-2); }
+    .diag-chip.ok { background: rgba(48,209,88,.12); color:#1a7f37; border-color: rgba(48,209,88,.3); }
+    .diag-chip.ok .dot { background: var(--green); box-shadow: 0 0 8px rgba(48,209,88,.6); }
+    .diag-chip.error { background: rgba(255,69,58,.12); color:#b3261e; border-color: rgba(255,69,58,.3); }
+    .diag-chip.error .dot { background: var(--red); }
+    .diag-chip.warn { background: rgba(255,204,0,.15); color:#8a6d00; border-color: rgba(255,204,0,.35); }
+    .diag-chip.warn .dot { background: var(--yellow); }
+    .diag-chip.run { background: rgba(0,113,227,.12); color: var(--accent); border-color: rgba(0,113,227,.3); }
+    .diag-chip.run .dot { background: var(--accent); animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.4;} }
+
+    @media (max-width: 640px) {
+        .stage { flex-direction: column; }
+        .big-card { min-height: 180px; flex-direction: row; align-items: center; gap: 18px; }
+        .big-card p { margin-top: -6px; }
+        .glass { padding: 22px; }
+        h1 { font-size: 24px; }
+    }
 </style>
 </head>
 <body>
 
-<div class="wrap">
+<div class="app">
 
-    <!-- HEADER -->
-    <div class="panel">
-        <h1>🧪 Console de Diagnóstico</h1>
-        <p class="subtitle">Verifica conexão, tabela, policies e dados do Supabase — em tempo real.</p>
-
-        <div class="status-bar">
-            <span class="status-chip" id="chip-env"><span class="dot"></span> Ambiente</span>
-            <span class="status-chip" id="chip-config"><span class="dot"></span> Configuração</span>
-            <span class="status-chip" id="chip-conn"><span class="dot"></span> Conexão</span>
-            <span class="status-chip" id="chip-table"><span class="dot"></span> Tabela</span>
-            <span class="status-chip" id="chip-insert"><span class="dot"></span> Insert</span>
-            <span class="status-chip" id="chip-select"><span class="dot"></span> Select</span>
+    <!-- ========== HOME ========== -->
+    <section class="screen active" id="scr-home">
+        <div class="glass" style="margin-bottom:20px;">
+            <h1>Painel de Feedback</h1>
+            <p class="subtitle">Gerencie, visualize e administre os feedbacks recebidos.</p>
+            <div class="toolbar">
+                <button class="btn" id="btn-new">＋ Novo feedback</button>
+                <button class="btn ghost" id="btn-diag">🔍 Diagnóstico</button>
+            </div>
         </div>
 
-        <div class="actions">
-            <button class="btn" id="run-all">▶ Rodar todos os testes</button>
-            <button class="btn btn-ghost" id="clear-log">Limpar log</button>
-            <button class="btn btn-ghost" id="copy-log">Copiar log</button>
+        <div class="stage">
+            <button class="big-card" data-go="basic">
+                <div class="icon">📋</div>
+                <h3>Dados<br>Básicos</h3>
+                <p>Lista simples dos feedbacks. Clique pra abrir cada um.</p>
+                <span class="arrow">→</span>
+            </button>
+            <button class="big-card" data-go="advanced">
+                <div class="icon alt">📊</div>
+                <h3>Dados<br>Avançados</h3>
+                <p>Estatísticas, filtros, busca e tabela completa.</p>
+                <span class="arrow">→</span>
+            </button>
         </div>
-    </div>
+    </section>
 
-    <!-- CHECKS -->
-    <div class="panel">
-        <h2>📋 Resultado das verificações</h2>
-        <div class="checks" id="checks">
-            <div class="check-item"><div class="icon">?</div><span class="label">Aguardando testes...</span></div>
+    <!-- ========== DADOS BÁSICOS ========== -->
+    <section class="screen" id="scr-basic">
+        <div class="glass">
+            <button class="back-btn" data-back>← Voltar</button>
+            <h1>Feedbacks</h1>
+            <p class="subtitle" id="basic-count">Carregando...</p>
+            <div class="fb-list" id="basic-list">
+                <div class="loading">Carregando feedbacks...</div>
+            </div>
         </div>
-    </div>
+    </section>
 
-    <!-- INFO -->
-    <div class="panel">
-        <h2>🌐 Informações do ambiente</h2>
-        <div class="info-grid" id="info-grid"></div>
-    </div>
+    <!-- ========== DADOS AVANÇADOS ========== -->
+    <section class="screen" id="scr-advanced">
+        <div class="glass">
+            <button class="back-btn" data-back>← Voltar</button>
+            <h1>Dados Avançados</h1>
+            <p class="subtitle">Visão completa com estatísticas e filtros.</p>
 
-    <!-- DADOS RETORNADOS -->
-    <div class="panel">
-        <div class="section-title-row">
-            <h2>🗃️ Dados retornados da tabela</h2>
-            <span class="subtitle" style="margin:0" id="row-count">0 registros</span>
-        </div>
-        <div class="terminal" id="data-view" style="max-height: 260px; color: #a7f3d0;">
-            <div style="color:#6b7280;">Nenhuma consulta realizada ainda.</div>
-        </div>
-    </div>
+            <div class="stats" id="stats"></div>
 
-    <!-- LOG -->
-    <div class="panel">
-        <div class="section-title-row">
-            <h2>📜 Log em tempo real</h2>
-            <span class="subtitle" style="margin:0" id="log-count">0 linhas</span>
+            <div class="filters">
+                <input type="text" class="search" id="search" placeholder="Buscar em nome, e-mail ou mensagem...">
+                <button class="chip" data-filter="all">Todos</button>
+                <button class="chip" data-filter="named">Com nome</button>
+                <button class="chip" data-filter="imaged">Com imagem</button>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Data</th>
+                            <th>Nome</th>
+                            <th>E-mail</th>
+                            <th>Mensagem</th>
+                            <th>📷</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <tr><td colspan="6" class="loading">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
-        <div class="terminal" id="terminal"></div>
-    </div>
+    </section>
+
+    <!-- ========== DIAGNÓSTICO ========== -->
+    <section class="screen" id="scr-diag">
+        <div class="glass">
+            <button class="back-btn" data-back>← Voltar</button>
+            <h1>Diagnóstico</h1>
+            <p class="subtitle">Verifica conexão, tabela e permissões do Supabase.</p>
+            <div class="diag-chips" id="diag-chips" style="margin-bottom:20px;"></div>
+            <button class="btn" id="btn-run-diag">▶ Rodar testes</button>
+            <div style="margin-top:20px; padding:16px; background: rgba(0,0,0,.02); border-radius: 12px; font-family: var(--mono); font-size: 12px; line-height: 1.7; color: var(--text-2); max-height: 320px; overflow-y:auto;" id="diag-log">
+                Clique em "Rodar testes" para começar.
+            </div>
+        </div>
+    </section>
 
 </div>
+
+<!-- ========== MODAIS ========== -->
+<div class="backdrop" id="backdrop"></div>
+
+<!-- DETALHE -->
+<div class="sheet" id="sheet-detail">
+    <div class="sheet-header">
+        <h3 id="detail-title">Feedback</h3>
+        <button class="sheet-close" data-close>✕</button>
+    </div>
+    <div class="sheet-body" id="detail-body"></div>
+    <div class="sheet-footer">
+        <button class="btn ghost" data-close>Fechar</button>
+        <button class="btn danger" id="btn-delete">🗑️ Apagar feedback</button>
+    </div>
+</div>
+
+<!-- EDITOR -->
+<div class="sheet" id="sheet-editor">
+    <div class="sheet-header">
+        <h3>Novo feedback</h3>
+        <button class="sheet-close" data-close>✕</button>
+    </div>
+    <div class="sheet-body">
+        <div class="form-group">
+            <label>Nome</label>
+            <input type="text" id="ed-name" placeholder="Anônimo">
+        </div>
+        <div class="form-group">
+            <label>E-mail</label>
+            <input type="email" id="ed-email" placeholder="seu@email.com">
+        </div>
+        <div class="form-group">
+            <label>Mensagem</label>
+            <div class="editor">
+                <div class="editor-toolbar">
+                    <button data-cmd="bold" title="Negrito"><b>B</b></button>
+                    <button data-cmd="italic" title="Itálico"><i>I</i></button>
+                    <button data-cmd="underline" title="Sublinhado"><u>U</u></button>
+                    <button data-cmd="strikeThrough" title="Riscado"><s>S</s></button>
+                    <button class="sep"></button>
+                    <button data-cmd="insertUnorderedList" title="Lista">• ≡</button>
+                    <button data-cmd="insertOrderedList" title="Lista numerada">1. ≡</button>
+                    <button class="sep"></button>
+                    <button data-cmd="createLink" title="Link">🔗</button>
+                    <button data-action="img" title="Imagem">🖼️</button>
+                    <button data-action="emoji" title="Emoji">😊</button>
+                    <button data-cmd="removeFormat" title="Limpar formatação">⌫</button>
+                </div>
+                <div class="editor-content" id="ed-content" contenteditable="true" data-placeholder="Escreva seu feedback..."></div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Imagem (opcional)</label>
+            <div class="dropzone" id="dropzone">
+                <p>Arraste uma imagem aqui ou <b>clique para escolher</b></p>
+                <p style="font-size:11px; margin-top:4px;">PNG, JPG ou GIF · máx 5 MB</p>
+            </div>
+            <input type="file" id="img-input" accept="image/*" hidden>
+            <div id="img-preview-container"></div>
+        </div>
+    </div>
+    <div class="sheet-footer">
+        <button class="btn ghost" data-close>Cancelar</button>
+        <button class="btn" id="btn-save">Salvar feedback</button>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
 
 <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
     // =====================================================
-    // ⚙️ CONFIGURAÇÃO — EDITE AQUI SE PRECISAR
-    // =====================================================
     const SUPABASE_URL = 'https://rqeakuvigmxtssadmdov.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_B7R-o2Ekd3X6N2fpMgr9PQ_UPZwbmKk';
-    const TABLE_NAME = 'feedbacks';
+    const TABLE = 'feedbacks';
+    const BUCKET = 'feedback-images';
     // =====================================================
 
-    const terminal = document.getElementById('terminal');
-    const checksEl = document.getElementById('checks');
-    const infoGrid = document.getElementById('info-grid');
-    const dataView = document.getElementById('data-view');
-    const rowCount = document.getElementById('row-count');
-    const logCount = document.getElementById('log-count');
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-    let logLines = 0;
+    let allData = [];       // cache local
+    let currentFilter = 'all';
+    let currentSearch = '';
+    let currentDetailId = null;
+    let pendingImage = null; // { file, previewUrl }
+    let sheetReturnFocus = null;
 
-    function log(tag, msg) {
-        const t = new Date().toLocaleTimeString('pt-BR', { hour12: false });
-        const line = document.createElement('div');
-        line.className = 'log-line';
-        line.innerHTML = `
-            <span class="log-time">${t}</span>
-            <span class="log-tag ${tag}">${tag.toUpperCase()}</span>
-            <span class="log-msg">${msg}</span>
-        `;
-        terminal.appendChild(line);
-        terminal.scrollTop = terminal.scrollHeight;
-        logLines++;
-        logCount.textContent = `${logLines} linha${logLines > 1 ? 's' : ''}`;
-        // também manda pro console nativo
-        const native = { ok: console.log, info: console.info, warn: console.warn, error: console.error, data: console.log }[tag] || console.log;
-        native(`[${tag}]`, msg.replace(/<[^>]+>/g, ''));
-    }
-
-    function setCheck(id, state, label, detail = '') {
-        const chip = document.getElementById(`chip-${id}`);
-        if (chip) {
-            chip.classList.remove('ok', 'warn', 'error', 'run');
-            if (state) chip.classList.add(state);
-        }
-        // linha da seção de checks
-        const map = {
-            env: 'Ambiente',
-            config: 'Configuração do Supabase',
-            conn: 'Conexão com o Supabase',
-            table: `Tabela "${TABLE_NAME}" existe`,
-            insert: 'INSERT (enviar feedback)',
-            select: 'SELECT (ler feedbacks)',
-        };
-        // procurar/atualizar
-        let item = document.querySelector(`.check-item[data-id="${id}"]`);
-        if (!item) {
-            item = document.createElement('div');
-            item.className = 'check-item';
-            item.dataset.id = id;
-            checksEl.appendChild(item);
-        }
-        const iconMap = { ok: '✓', warn: '!', error: '✕', run: '⋯', null: '?' };
-        const icon = iconMap[state] ?? '?';
-        item.className = 'check-item' + (state ? ` ${state}` : '');
-        item.innerHTML = `
-            <div class="icon">${state === 'run' ? '<span class="loading-spin"></span>' : icon}</div>
-            <span class="label">${label || map[id]}</span>
-            <span class="detail">${detail}</span>
-        `;
-    }
-
-    function addInfo(key, value) {
-        const el = document.createElement('div');
-        el.className = 'info-item';
-        el.innerHTML = `<div class="key">${key}</div><div class="val">${value}</div>`;
-        infoGrid.appendChild(el);
-    }
-
-    async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-    // =====================================================
-    // TESTE 1 — AMBIENTE
-    // =====================================================
-    async function testEnv() {
-        setCheck('env', 'run');
-        log('info', 'Verificando ambiente do navegador...');
-        await sleep(200);
-
-        addInfo('URL da página', window.location.href);
-        addInfo('Origem', window.location.origin);
-        addInfo('Protocolo', window.location.protocol);
-        addInfo('Navegador', navigator.userAgent.split(') ')[0].split(' (')[0]);
-        addInfo('Idioma', navigator.language);
-        addInfo('Online', navigator.onLine ? '✅ sim' : '❌ não');
-        addInfo('Data/hora', new Date().toLocaleString('pt-BR'));
-
-        let state = 'ok', detail = '';
-        if (!navigator.onLine) {
-            state = 'error';
-            detail = 'sem internet';
-            log('error', '❌ Você está offline. Conecte-se à internet.');
-        } else {
-            log('ok', `Ambiente OK · ${window.location.origin}`);
-        }
-        setCheck('env', state, undefined, detail);
-    }
-
-    // =====================================================
-    // TESTE 2 — CONFIGURAÇÃO
-    // =====================================================
-    async function testConfig() {
-        setCheck('config', 'run');
-        log('info', 'Validando URL e chave do Supabase...');
-        await sleep(250);
-
-        addInfo('SUPABASE_URL', SUPABASE_URL);
-        addInfo('SUPABASE_KEY', SUPABASE_KEY.slice(0, 24) + '…' + SUPABASE_KEY.slice(-6));
-        addInfo('Tabela alvo', TABLE_NAME);
-
-        const urlOk = /^https:\/\/[a-z0-9]+\.supabase\.co\/?$/.test(SUPABASE_URL);
-        const keyOk = SUPABASE_KEY && SUPABASE_KEY.length > 20;
-
-        if (!urlOk) {
-            log('error', `❌ SUPABASE_URL inválida: <span class="value">${SUPABASE_URL}</span>`);
-            log('warn', 'A URL deve ser algo como <span class="value">https://xxxxx.supabase.co</span> (sem <span class="value">/rest/v1/</span>).');
-            setCheck('config', 'error', undefined, 'URL inválida');
-            return false;
-        }
-        if (!keyOk) {
-            log('error', '❌ SUPABASE_KEY parece inválida ou ausente.');
-            setCheck('config', 'error', undefined, 'key inválida');
-            return false;
-        }
-
-        log('ok', 'Configuração válida. URL e chave com formato correto.');
-        setCheck('config', 'ok', undefined, 'formato OK');
-        return true;
-    }
-
-    // =====================================================
-    // TESTE 3 — CONEXÃO
-    // =====================================================
-    let supabase;
-    async function testConnection() {
-        setCheck('conn', 'run');
-        log('info', 'Testando conexão com o Supabase...');
-
-        try {
-            supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-            // tenta fazer um HEAD request na API REST
-            const url = `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/`;
-            const t0 = performance.now();
-
-            const res = await fetch(url, {
-                headers: {
-                    'apikey': SUPABASE_KEY,
-                    'Authorization': `Bearer ${SUPABASE_KEY}`,
-                },
-            });
-            const ms = Math.round(performance.now() - t0);
-
-            addInfo('Status HTTP', `${res.status} ${res.statusText}`);
-            addInfo('Latência', `${ms} ms`);
-
-            if (!res.ok && res.status !== 200) {
-                log('warn', `⚠️ Resposta HTTP ${res.status} (pode ser normal).`);
-            } else {
-                log('ok', `Conectado ao Supabase em <span class="ok-text">${ms}ms</span>.`);
-            }
-            setCheck('conn', 'ok', undefined, `${ms}ms`);
-            return true;
-        } catch (e) {
-            log('error', `❌ Falha ao conectar: <span class="err-text">${e.message}</span>`);
-            log('warn', 'Verifique sua internet e se a URL do projeto está correta.');
-            setCheck('conn', 'error', undefined, e.message.slice(0, 40));
-            return false;
-        }
-    }
-
-    // =====================================================
-    // TESTE 4 — TABELA EXISTE
-    // =====================================================
-    async function testTable() {
-        setCheck('table', 'run');
-        log('info', `Verificando se a tabela "${TABLE_NAME}" existe...`);
-
-        const { data, error, status } = await supabase
-            .from(TABLE_NAME)
-            .select('*', { count: 'exact', head: true });
-
-        if (error) {
-            log('error', `❌ Erro: <span class="err-text">${error.message}</span>`);
-            if (error.code) log('data', `Código: <span class="value">${error.code}</span>`);
-            if (error.message.includes('does not exist') || error.code === '42P01') {
-                log('warn', '👉 A tabela não existe. Rode o SQL de criação no SQL Editor do Supabase.');
-            } else if (error.message.includes('permission') || error.code === '42501') {
-                log('warn', '👉 Permissão negada. Verifique se a policy de SELECT foi criada.');
-            }
-            setCheck('table', 'error', undefined, error.code || 'erro');
-            return false;
-        }
-
-        const count = data?.length ?? 0;
-        log('ok', `Tabela encontrada. Ela possui registros acessíveis.`);
-        setCheck('table', 'ok', undefined, 'existe');
-        return true;
-    }
-
-    // =====================================================
-    // TESTE 5 — INSERT
-    // =====================================================
-    async function testInsert() {
-        setCheck('insert', 'run');
-        log('info', 'Testando INSERT (envio de feedback de teste)...');
-
-        const testPayload = {
-            name: '[TESTE AUTO]',
-            email: null,
-            message: 'Este é um feedback de teste gerado pelo console em ' + new Date().toISOString(),
-        };
-
-        const { data, error } = await supabase
-            .from(TABLE_NAME)
-            .insert([testPayload])
-            .select();
-
-        if (error) {
-            log('error', `❌ Erro ao inserir: <span class="err-text">${error.message}</span>`);
-            if (error.code) log('data', `Código: <span class="value">${error.code}</span>`);
-            if (error.message.includes('permission') || error.code === '42501') {
-                log('warn', '👉 A policy de INSERT provavelmente não foi criada.');
-                log('warn', 'Rode: <span class="value">create policy "Permitir inserção pública" on public.feedbacks for insert to anon with check (true);</span>');
-            } else if (error.message.includes('does not exist')) {
-                log('warn', '👉 A tabela não existe ainda.');
-            }
-            setCheck('insert', 'error', undefined, error.code || 'erro');
-            return null;
-        }
-
-        log('ok', `Feedback de teste inserido com sucesso.`);
-        log('data', `ID gerado: <span class="value">${data[0].id}</span>`);
-        setCheck('insert', 'ok', undefined, `id ${data[0].id}`);
-        return data[0].id;
-    }
-
-    // =====================================================
-    // TESTE 6 — SELECT
-    // =====================================================
-    async function testSelect() {
-        setCheck('select', 'run');
-        log('info', 'Testando SELECT (listagem de feedbacks)...');
-
-        const { data, error } = await supabase
-            .from(TABLE_NAME)
-            .select('id, name, email, message, created_at')
-            .order('created_at', { ascending: false })
-            .limit(20);
-
-        if (error) {
-            log('error', `❌ Erro ao ler: <span class="err-text">${error.message}</span>`);
-            if (error.message.includes('permission') || error.code === '42501') {
-                log('warn', '👉 A policy de SELECT provavelmente não foi criada.');
-                log('warn', 'Rode: <span class="value">create policy "Permitir leitura pública" on public.feedbacks for select to anon using (true);</span>');
-            }
-            setCheck('select', 'error', undefined, error.code || 'erro');
-            return null;
-        }
-
-        rowCount.textContent = `${data.length} registro${data.length !== 1 ? 's' : ''}`;
-        dataView.innerHTML = data.length
-            ? data.map(r => `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
-                <span style="color:#93c5fd;">#${r.id}</span>
-                <span style="color:#9ca3af;"> · ${new Date(r.created_at).toLocaleString('pt-BR')}</span>
-                <span style="color:#4ade80;"> · ${escapeHtml(r.name || 'Anônimo')}</span>
-                <div style="color:#e5e7eb;margin-top:4px;">${escapeHtml(r.message)}</div>
-              </div>`).join('')
-            : '<div style="color:#6b7280;">A tabela está vazia.</div>';
-
-        log('ok', `Leitura OK · ${data.length} registro(s) retornado(s).`);
-        setCheck('select', 'ok', undefined, `${data.length} linhas`);
-        return data;
-    }
-
+    /* ================== UTIL ================== */
     function escapeHtml(s) {
         return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
-
-    // =====================================================
-    // LIMPAR FEEDBACK DE TESTE
-    // =====================================================
-    async function cleanupTest(id) {
-        if (!id) return;
-        log('info', `🧹 Limpando feedback de teste #${id}...`);
-        const { error } = await supabase.from(TABLE_NAME).delete().eq('id', id);
-        if (error) {
-            log('warn', `Não foi possível apagar (normal, DELETE não é permitido pela API pública). Apague manualmente no Supabase.`);
-        } else {
-            log('ok', 'Feedback de teste removido.');
-        }
+    function sanitizeHtml(html) {
+        const allowed = ['b','strong','i','em','u','s','br','p','ul','ol','li','a','span'];
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        doc.querySelectorAll('*').forEach(el => {
+            if (!allowed.includes(el.tagName.toLowerCase())) {
+                el.replaceWith(...el.childNodes);
+                return;
+            }
+            [...el.attributes].forEach(attr => {
+                if (el.tagName.toLowerCase() === 'a' && attr.name === 'href') return;
+                el.removeAttribute(attr.name);
+            });
+        });
+        return doc.body.innerHTML;
+    }
+    function formatDate(iso) {
+        const d = new Date(iso);
+        return d.toLocaleString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+    function initials(name) {
+        if (!name) return '?';
+        return name.trim().split(/\s+/).slice(0,2).map(w => w[0]).join('').toUpperCase();
+    }
+    function avatarClass(id) {
+        const classes = ['', 'alt', 'alt2', 'alt3'];
+        return classes[id % 4];
     }
 
-    // =====================================================
-    // ORQUESTRADOR
-    // =====================================================
-    async function runAll() {
-        const btn = document.getElementById('run-all');
-        btn.disabled = true;
-        log('info', '════════ Iniciando bateria de testes ════════');
-
-        await testEnv();
-        const cfgOk = await testConfig();
-        if (!cfgOk) { btn.disabled = false; return; }
-
-        const connOk = await testConnection();
-        if (!connOk) { btn.disabled = false; return; }
-
-        const tblOk = await testTable();
-        if (!tblOk) { btn.disabled = false; log('error', '🛑 Testes de insert/select cancelados (tabela indisponível).'); return; }
-
-        const testId = await testInsert();
-        await testSelect();
-        // não apaga automaticamente — deixa o usuário ver
-        // await cleanupTest(testId);
-
-        log('info', '════════ Testes finalizados ════════');
-        btn.disabled = false;
+    function toast(msg, type = 'ok') {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = 'toast show ' + type;
+        setTimeout(() => t.classList.remove('show'), 2600);
     }
 
-    // =====================================================
-    // BOTÕES
-    // =====================================================
-    document.getElementById('run-all').addEventListener('click', runAll);
-
-    document.getElementById('clear-log').addEventListener('click', () => {
-        terminal.innerHTML = '';
-        logLines = 0;
-        logCount.textContent = '0 linhas';
+    /* ================== NAVEGAÇÃO ================== */
+    const screens = {
+        home: document.getElementById('scr-home'),
+        basic: document.getElementById('scr-basic'),
+        advanced: document.getElementById('scr-advanced'),
+        diag: document.getElementById('scr-diag'),
+    };
+    function goTo(name) {
+        Object.values(screens).forEach(s => s.classList.remove('active'));
+        screens[name].classList.add('active');
+        if (name === 'basic' || name === 'advanced') loadData();
+    }
+    document.querySelectorAll('[data-go]').forEach(el => {
+        el.addEventListener('click', () => goTo(el.dataset.go));
     });
+    document.querySelectorAll('[data-back]').forEach(el => {
+        el.addEventListener('click', () => goTo('home'));
+    });
+    document.getElementById('btn-diag').addEventListener('click', () => goTo('diag'));
 
-    document.getElementById('copy-log').addEventListener('click', async () => {
-        const text = [...terminal.querySelectorAll('.log-line')]
-            .map(l => l.textContent.replace(/\s+/g, ' ').trim())
-            .join('\n');
+    /* ================== MODAL ================== */
+    const backdrop = document.getElementById('backdrop');
+    const sheets = ['sheet-detail','sheet-editor'].map(id => document.getElementById(id));
+
+    function openSheet(sheet) {
+        backdrop.classList.add('show');
+        sheet.classList.add('show');
+    }
+    function closeSheets() {
+        backdrop.classList.remove('show');
+        sheets.forEach(s => s.classList.remove('show'));
+    }
+    backdrop.addEventListener('click', closeSheets);
+    document.querySelectorAll('[data-close]').forEach(el => el.addEventListener('click', closeSheets));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheets(); });
+
+    /* ================== CARREGAR DADOS ================== */
+    async function loadData() {
         try {
-            await navigator.clipboard.writeText(text);
-            log('ok', 'Log copiado para a área de transferência.');
-        } catch {
-            log('warn', 'Não foi possível copiar automaticamente.');
+            const { data, error } = await supabase
+                .from(TABLE)
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(500);
+            if (error) throw error;
+            allData = data || [];
+            renderBasic();
+            renderAdvanced();
+        } catch (e) {
+            console.error(e);
+            document.getElementById('basic-list').innerHTML = `<div class="empty">❌ Erro: ${escapeHtml(e.message)}</div>`;
+            document.getElementById('table-body').innerHTML = `<tr><td colspan="6" class="empty">❌ ${escapeHtml(e.message)}</td></tr>`;
+        }
+    }
+
+    /* ================== RENDER BÁSICO ================== */
+    function renderBasic() {
+        const list = document.getElementById('basic-list');
+        const count = document.getElementById('basic-count');
+        count.textContent = `${allData.length} feedback${allData.length !== 1 ? 's' : ''} no total`;
+
+        if (!allData.length) {
+            list.innerHTML = '<div class="empty">Nenhum feedback ainda. ✨</div>';
+            return;
+        }
+        list.innerHTML = allData.map((f, i) => `
+            <div class="fb-card" data-id="${f.id}" style="animation-delay:${i * 0.04}s">
+                <div class="avatar ${avatarClass(f.id)}">${escapeHtml(initials(f.name))}</div>
+                <div class="fb-body">
+                    <div class="fb-head">
+                        <span class="fb-name">${escapeHtml(f.name || 'Anônimo')}</span>
+                        <span class="fb-date">${formatDate(f.created_at)}</span>
+                        ${f.image_url ? '<span class="fb-badge img">📷 imagem</span>' : ''}
+                    </div>
+                    <div class="fb-msg">${escapeHtml(f.message).replace(/\n/g,'<br>')}</div>
+                </div>
+                ${f.image_url ? `<img class="fb-thumb" src="${escapeHtml(f.image_url)}" alt="" loading="lazy">` : ''}
+            </div>
+        `).join('');
+        list.querySelectorAll('.fb-card').forEach(card => {
+            card.addEventListener('click', () => openDetail(Number(card.dataset.id)));
+        });
+    }
+
+    /* ================== RENDER AVANÇADO ================== */
+    function applyFilters() {
+        return allData.filter(f => {
+            if (currentFilter === 'named' && !f.name) return false;
+            if (currentFilter === 'imaged' && !f.image_url) return false;
+            if (currentSearch) {
+                const q = currentSearch.toLowerCase();
+                const hay = `${f.name||''} ${f.email||''} ${f.message||''}`.toLowerCase();
+                if (!hay.includes(q)) return false;
+            }
+            return true;
+        });
+    }
+
+    function renderAdvanced() {
+        const total = allData.length;
+        const named = allData.filter(f => f.name).length;
+        const emailed = allData.filter(f => f.email).length;
+        const imaged = allData.filter(f => f.image_url).length;
+        const avgLen = total ? Math.round(allData.reduce((a, f) => a + (f.message?.length || 0), 0) / total) : 0;
+        const oldest = total ? formatDate(allData[allData.length-1].created_at) : '—';
+        const newest = total ? formatDate(allData[0].created_at) : '—';
+
+        document.getElementById('stats').innerHTML = `
+            <div class="stat"><div class="label">Total</div><div class="value">${total}</div></div>
+            <div class="stat"><div class="label">Com nome</div><div class="value">${named}</div></div>
+            <div class="stat"><div class="label">Com e-mail</div><div class="value">${emailed}</div></div>
+            <div class="stat"><div class="label">Com imagem</div><div class="value">${imaged}</div></div>
+            <div class="stat"><div class="label">Chars médios</div><div class="value">${avgLen}</div></div>
+            <div class="stat"><div class="label">Mais recente</div><div class="value small">${newest}</div></div>
+            <div class="stat"><div class="label">Mais antigo</div><div class="value small">${oldest}</div></div>
+        `;
+
+        const rows = applyFilters();
+        const tbody = document.getElementById('table-body');
+        if (!rows.length) {
+            tbody.innerHTML = `<tr><td colspan="6" class="empty">Nenhum resultado.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = rows.map(f => `
+            <tr class="clickable" data-id="${f.id}">
+                <td><span class="mono">#${f.id}</span></td>
+                <td><span class="mono">${formatDate(f.created_at)}</span></td>
+                <td>${escapeHtml(f.name || '<anônimo>')}</td>
+                <td>${escapeHtml(f.email || '—')}</td>
+                <td class="trunc">${escapeHtml(f.message).replace(/\n/g,' ')}</td>
+                <td>${f.image_url ? '📷' : '—'}</td>
+            </tr>
+        `).join('');
+        tbody.querySelectorAll('tr.clickable').forEach(tr => {
+            tr.addEventListener('click', () => openDetail(Number(tr.dataset.id)));
+        });
+    }
+
+    document.getElementById('search').addEventListener('input', e => {
+        currentSearch = e.target.value;
+        renderAdvanced();
+    });
+    document.querySelectorAll('[data-filter]').forEach(chip => {
+        chip.addEventListener('click', () => {
+            document.querySelectorAll('[data-filter]').forEach(c => c.classList.remove('on'));
+            chip.classList.add('on');
+            currentFilter = chip.dataset.filter;
+            renderAdvanced();
+        });
+    });
+    document.querySelector('[data-filter="all"]').classList.add('on');
+
+    /* ================== DETALHE ================== */
+    async function openDetail(id) {
+        currentDetailId = id;
+        const item = allData.find(f => f.id === id);
+        if (!item) return;
+
+        document.getElementById('detail-title').textContent = `Feedback #${item.id}`;
+        document.getElementById('detail-body').innerHTML = `
+            <div class="detail-row"><div class="k">Nome</div><div class="v">${escapeHtml(item.name || 'Anônimo')}</div></div>
+            <div class="detail-row"><div class="k">E-mail</div><div class="v">${escapeHtml(item.email || '—')}</div></div>
+            <div class="detail-row"><div class="k">Data</div><div class="v mono">${formatDate(item.created_at)}</div></div>
+            <div class="detail-row"><div class="k">Mensagem</div><div class="v msg">${escapeHtml(item.message)}</div></div>
+            ${item.image_url ? `
+                <div class="detail-row" style="flex-direction:column; gap:8px; align-items:flex-start;">
+                    <div class="k">Imagem</div>
+                    <img class="detail-img" src="${escapeHtml(item.image_url)}" alt="">
+                </div>` : ''}
+        `;
+        openSheet(document.getElementById('sheet-detail'));
+    }
+
+    /* ================== DELETE ================== */
+    document.getElementById('btn-delete').addEventListener('click', async () => {
+        if (!currentDetailId) return;
+        const item = allData.find(f => f.id === currentDetailId);
+        if (!confirm(`Apagar o feedback #${currentDetailId}? Esta ação não pode ser desfeita.`)) return;
+
+        // remove imagem do storage (se existir)
+        if (item?.image_url) {
+            try {
+                const path = item.image_url.split(`/${BUCKET}/`)[1];
+                if (path) await supabase.storage.from(BUCKET).remove([path]);
+            } catch (e) { console.warn('Falha ao apagar imagem:', e); }
+        }
+
+        const { error } = await supabase.from(TABLE).delete().eq('id', currentDetailId);
+        if (error) {
+            console.error(error);
+            if (error.message.includes('permission') || error.code === '42501') {
+                toast('Permissão negada. Rode a policy de DELETE no Supabase.', 'error');
+            } else {
+                toast('Erro ao apagar: ' + error.message, 'error');
+            }
+            return;
+        }
+        toast('Feedback apagado.');
+        closeSheets();
+        loadData();
+    });
+
+    /* ================== EDITOR — NOVO FEEDBACK ================== */
+    const editorContent = document.getElementById('ed-content');
+    const edName = document.getElementById('ed-name');
+    const edEmail = document.getElementById('ed-email');
+
+    document.getElementById('btn-new').addEventListener('click', () => {
+        edName.value = ''; edEmail.value = '';
+        editorContent.innerHTML = '';
+        removePendingImage();
+        openSheet(document.getElementById('sheet-editor'));
+    });
+
+    // Toolbar do editor
+    document.querySelectorAll('.editor-toolbar button').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const cmd = btn.dataset.cmd;
+            const action = btn.dataset.action;
+
+            if (cmd) {
+                if (cmd === 'createLink') {
+                    const url = prompt('URL do link:');
+                    if (url) document.execCommand('createLink', false, url);
+                } else {
+                    document.execCommand(cmd, false, null);
+                }
+                editorContent.focus();
+            } else if (action === 'img') {
+                document.getElementById('img-input').click();
+            } else if (action === 'emoji') {
+                const emoji = prompt('Cole um emoji: 😊 🎉 🔥 ❤️ 🚀 💡');
+                if (emoji) document.execCommand('insertText', false, emoji);
+                editorContent.focus();
+            }
+        });
+    });
+
+    /* ================== UPLOAD DE IMAGEM ================== */
+    const dropzone = document.getElementById('dropzone');
+    const imgInput = document.getElementById('img-input');
+    const imgPreviewContainer = document.getElementById('img-preview-container');
+
+    function removePendingImage() {
+        if (pendingImage?.previewUrl) URL.revokeObjectURL(pendingImage.previewUrl);
+        pendingImage = null;
+        imgPreviewContainer.innerHTML = '';
+    }
+
+    function handleImageFile(file) {
+        if (!file) return;
+        if (!file.type.startsWith('image/')) { toast('Arquivo precisa ser uma imagem.', 'error'); return; }
+        if (file.size > 5 * 1024 * 1024) { toast('Imagem maior que 5 MB.', 'error'); return; }
+        removePendingImage();
+        const url = URL.createObjectURL(file);
+        pendingImage = { file, previewUrl: url };
+        imgPreviewContainer.innerHTML = `
+            <div class="img-preview">
+                <img src="${url}" alt="">
+                <button class="remove" type="button" title="Remover">✕</button>
+            </div>
+        `;
+        imgPreviewContainer.querySelector('.remove').addEventListener('click', removePendingImage);
+    }
+
+    dropzone.addEventListener('click', () => imgInput.click());
+    imgInput.addEventListener('change', e => handleImageFile(e.target.files[0]));
+    ['dragenter','dragover'].forEach(evt =>
+        dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add('over'); })
+    );
+    ['dragleave','drop'].forEach(evt =>
+        dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.remove('over'); })
+    );
+    dropzone.addEventListener('drop', e => handleImageFile(e.dataTransfer.files[0]));
+
+    // colar imagem direto no editor
+    editorContent.addEventListener('paste', e => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+        for (const it of items) {
+            if (it.type.startsWith('image/')) {
+                e.preventDefault();
+                handleImageFile(it.getAsFile());
+                return;
+            }
         }
     });
 
-    // auto-run
-    window.addEventListener('load', () => setTimeout(runAll, 400));
+    async function uploadImageToStorage(file) {
+        const ext = file.name.split('.').pop().toLowerCase() || 'png';
+        const path = `public/${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;
+        const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
+            cacheControl: '31536000', upsert: false,
+        });
+        if (error) throw error;
+        const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+        return data.publicUrl;
+    }
+
+    /* ================== SALVAR NOVO FEEDBACK ================== */
+    document.getElementById('btn-save').addEventListener('click', async () => {
+        const btn = document.getElementById('btn-save');
+        const text = editorContent.innerText.trim();
+        if (!text) { toast('Escreva uma mensagem.', 'error'); return; }
+
+        btn.disabled = true;
+        btn.textContent = 'Salvando...';
+
+        try {
+            let imageUrl = null;
+            if (pendingImage?.file) {
+                btn.textContent = 'Enviando imagem...';
+                try {
+                    imageUrl = await uploadImageToStorage(pendingImage.file);
+                } catch (e) {
+                    console.error(e);
+                    toast('Falha ao enviar imagem: ' + e.message, 'error');
+                }
+            }
+
+            const payload = {
+                name: edName.value.trim() || null,
+                email: edEmail.value.trim() || null,
+                message: text,
+            };
+            // só adiciona se a coluna existir no banco
+            if (imageUrl) payload.image_url = imageUrl;
+
+            const { error } = await supabase.from(TABLE).insert([payload]);
+            if (error) throw error;
+
+            toast('Feedback criado com sucesso.');
+            closeSheets();
+            await loadData();
+        } catch (e) {
+            console.error(e);
+            toast('Erro: ' + e.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Salvar feedback';
+        }
+    });
+
+    /* ================== DIAGNÓSTICO ================== */
+    const diagLog = document.getElementById('diag-log');
+    function diagLogLine(tag, msg) {
+        const color = { ok: '#30d158', error: '#ff453a', warn: '#ffcc00', info: '#0071e3' }[tag] || '#86868b';
+        diagLog.innerHTML += `<div style="color:${color}">[${tag.toUpperCase()}] ${msg}</div>`;
+        diagLog.scrollTop = diagLog.scrollHeight;
+    }
+
+    function setDiagChip(id, state, label) {
+        let el = document.querySelector(`.diag-chip[data-id="${id}"]`);
+        if (!el) {
+            el = document.createElement('span');
+            el.className = 'diag-chip';
+            el.dataset.id = id;
+            document.getElementById('diag-chips').appendChild(el);
+        }
+        el.className = 'diag-chip ' + (state || '');
+        el.innerHTML = `<span class="dot"></span> ${label}`;
+    }
+
+    document.getElementById('btn-run-diag').addEventListener('click', async () => {
+        diagLog.innerHTML = '';
+        diagLogLine('info', 'Iniciando bateria de testes...');
+
+        // 1. Conexão
+        setDiagChip('conn', 'run', 'Conexão');
+        try {
+            const t0 = performance.now();
+            const res = await fetch(SUPABASE_URL.replace(/\/$/, '') + '/rest/v1/', {
+                headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+            });
+            const ms = Math.round(performance.now() - t0);
+            if (!res.ok && res.status !== 200) throw new Error(`HTTP ${res.status}`);
+            setDiagChip('conn', 'ok', `Conexão (${ms}ms)`);
+            diagLogLine('ok', `Conectado em ${ms}ms`);
+        } catch (e) {
+            setDiagChip('conn', 'error', 'Conexão');
+            diagLogLine('error', 'Falha: ' + e.message);
+        }
+
+        // 2. Tabela + SELECT
+        setDiagChip('select', 'run', 'SELECT');
+        const { data, error } = await supabase.from(TABLE).select('*').limit(1);
+        if (error) {
+            setDiagChip('select', 'error', 'SELECT');
+            diagLogLine('error', 'Erro: ' + error.message);
+        } else {
+            setDiagChip('select', 'ok', 'SELECT');
+            diagLogLine('ok', `Leitura OK. ${allData.length} registros em cache.`);
+        }
+
+        // 3. INSERT
+        setDiagChip('insert', 'run', 'INSERT');
+        const { data: ins, error: insErr } = await supabase.from(TABLE)
+            .insert([{ name: '[DIAG]', message: 'Teste automático ' + new Date().toISOString() }])
+            .select();
+        if (insErr) {
+            setDiagChip('insert', 'error', 'INSERT');
+            diagLogLine('error', 'INSERT: ' + insErr.message);
+        } else {
+            setDiagChip('insert', 'ok', 'INSERT');
+            diagLogLine('ok', `INSERT OK. ID ${ins[0].id}`);
+            // limpa
+            const { error: delErr } = await supabase.from(TABLE).delete().eq('id', ins[0].id);
+            if (delErr) {
+                setDiagChip('delete', 'warn', 'DELETE');
+                diagLogLine('warn', 'DELETE falhou — rode a policy de DELETE.');
+            } else {
+                setDiagChip('delete', 'ok', 'DELETE');
+                diagLogLine('ok', 'DELETE OK.');
+            }
+        }
+
+        // 4. Storage
+        setDiagChip('storage', 'run', 'Storage');
+        const { data: buckets, error: bErr } = await supabase.storage.listBuckets();
+        if (bErr) {
+            setDiagChip('storage', 'warn', 'Storage');
+            diagLogLine('warn', 'Não foi possível listar buckets (normal para anon).');
+        } else {
+            const hasBucket = buckets?.some(b => b.name === BUCKET);
+            if (hasBucket) {
+                setDiagChip('storage', 'ok', 'Storage');
+                diagLogLine('ok', `Bucket "${BUCKET}" encontrado.`);
+            } else {
+                setDiagChip('storage', 'warn', 'Storage');
+                diagLogLine('warn', `Bucket "${BUCKET}" não existe. Rode o SQL de criação.`);
+            }
+        }
+    });
+
+    /* ================== INIT ================== */
+    loadData();
 </script>
 
 </body>
