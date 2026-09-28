@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Console de Diagnóstico — Feedback</title>
+<style>
+    :root {
+        --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+        --mono: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+        --bg: #f5f5f7;
+        --surface: rgba(255, 255, 255, 0.7);
+        --border: rgba(255, 255, 255, 0.7);
+        --text: #1d1d1f;
+        --text-2: #86868b;
+        --green: #30d158;
+        --yellow: #ffcc00;
+        --red: #ff453a;
+        --blue: #0071e3;
+        --purple: #af52de;
+        --spring: cubic-bezier(0.32, 0.72, 0, 1);
+        --smooth: cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        padding: 32px 20px;
+        -webkit-font-smoothing: antialiased;
+        overflow-x: hidden;
+    }
+
+    body::before, body::after {
+        content: '';
+        position: fixed;
+        border-radius: 50%;
+        filter: blur(120px);
+        opacity: 0.4;
+        z-index: -1;
+        pointer-events: none;
+    }
+    body::before {
+        width: 500px; height: 500px;
+        background: radial-gradient(circle, #a5c8ff, transparent 70%);
+        top: -180px; left: -180px;
+    }
+    body::after {
+        width: 600px; height: 600px;
+        background: radial-gradient(circle, #ffb8d9, transparent 70%);
+        bottom: -220px; right: -220px;
+    }
+
+    .wrap {
+        max-width: 900px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .panel {
+        background: var(--surface);
+        backdrop-filter: blur(30px) saturate(180%);
+        -webkit-backdrop-filter: blur(30px) saturate(180%);
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+        padding: 28px;
+    }
+
+    h1 {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: -0.6px;
+        margin-bottom: 6px;
+    }
+    .subtitle {
+        color: var(--text-2);
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+
+    .status-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    .status-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 100px;
+        font-size: 13px;
+        font-weight: 600;
+        background: rgba(255,255,255,0.6);
+        border: 1px solid rgba(0,0,0,0.06);
+        transition: all 0.3s var(--smooth);
+    }
+    .status-chip .dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        background: var(--text-2);
+        transition: background 0.3s;
+    }
+    .status-chip.ok    { color: #1a7f37; background: rgba(48, 209, 88, 0.12); border-color: rgba(48,209,88,0.3); }
+    .status-chip.ok .dot    { background: var(--green); box-shadow: 0 0 8px rgba(48,209,88,0.6); }
+    .status-chip.warn  { color: #8a6d00; background: rgba(255, 204, 0, 0.12); border-color: rgba(255,204,0,0.35); }
+    .status-chip.warn .dot  { background: var(--yellow); }
+    .status-chip.error { color: #b3261e; background: rgba(255, 69, 58, 0.12); border-color: rgba(255,69,58,0.3); }
+    .status-chip.error .dot { background: var(--red); box-shadow: 0 0 8px rgba(255,69,58,0.6); }
+    .status-chip.run   { color: var(--blue); background: rgba(0, 113, 227, 0.12); border-color: rgba(0,113,227,0.3); }
+    .status-chip.run .dot   { background: var(--blue); animation: pulse 1s infinite; }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50%      { opacity: 0.5; transform: scale(1.4); }
+    }
+
+    .btn {
+        padding: 12px 22px;
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 600;
+        color: white;
+        background: var(--blue);
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: transform 0.35s var(--spring), background 0.25s, box-shadow 0.35s var(--spring);
+        box-shadow: 0 8px 20px rgba(0, 113, 227, 0.3);
+    }
+    .btn:hover { background: #0077ed; transform: translateY(-2px); box-shadow: 0 12px 26px rgba(0,113,227,0.4); }
+    .btn:active { transform: scale(0.96); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-ghost {
+        background: rgba(255,255,255,0.7);
+        color: var(--text);
+        border: 1px solid rgba(0,0,0,0.08);
+        box-shadow: none;
+    }
+    .btn-ghost:hover { background: white; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+
+    .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    /* Log terminal */
+    .terminal {
+        background: #0b0d10;
+        border-radius: 16px;
+        padding: 20px;
+        font-family: var(--mono);
+        font-size: 13px;
+        line-height: 1.65;
+        color: #e5e7eb;
+        max-height: 480px;
+        overflow-y: auto;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05), 0 10px 30px rgba(0,0,0,0.15);
+    }
+    .terminal::-webkit-scrollbar { width: 8px; }
+    .terminal::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+
+    .log-line {
+        display: flex;
+        gap: 10px;
+        padding: 3px 0;
+        animation: lineIn 0.35s var(--spring);
+        word-break: break-word;
+    }
+    @keyframes lineIn {
+        from { opacity: 0; transform: translateY(4px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .log-time { color: #6b7280; flex-shrink: 0; }
+    .log-tag  {
+        flex-shrink: 0;
+        font-weight: 700;
+        padding: 0 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        align-self: center;
+        letter-spacing: 0.5px;
+    }
+    .log-tag.ok    { background: rgba(48,209,88,0.2); color: #4ade80; }
+    .log-tag.info  { background: rgba(0,113,227,0.2); color: #60a5fa; }
+    .log-tag.warn  { background: rgba(255,204,0,0.2); color: #fbbf24; }
+    .log-tag.error { background: rgba(255,69,58,0.2); color: #f87171; }
+    .log-tag.data  { background: rgba(175,82,222,0.2); color: #c084fc; }
+    .log-msg { color: #e5e7eb; }
+    .log-msg .value { color: #93c5fd; }
+    .log-msg .ok-text { color: #4ade80; font-weight: 600; }
+    .log-msg .err-text { color: #f87171; font-weight: 600; }
+
+    /* Detalhes das verificações */
+    .checks {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .check-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 18px;
+        background: rgba(255,255,255,0.6);
+        border: 1px solid rgba(0,0,0,0.05);
+        border-radius: 14px;
+        font-size: 14px;
+        transition: all 0.3s var(--smooth);
+    }
+    .check-item .icon {
+        width: 26px; height: 26px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        color: white;
+        flex-shrink: 0;
+        background: #c7c7cc;
+    }
+    .check-item.ok    .icon { background: var(--green); }
+    .check-item.warn  .icon { background: var(--yellow); color: #1d1d1f; }
+    .check-item.error .icon { background: var(--red); }
+    .check-item.run   .icon { background: var(--blue); }
+    .check-item .label { font-weight: 500; }
+    .check-item .detail {
+        margin-left: auto;
+        color: var(--text-2);
+        font-size: 13px;
+        font-family: var(--mono);
+        text-align: right;
+        max-width: 55%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Grid de infos */
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 10px;
+    }
+    .info-item {
+        padding: 12px 16px;
+        background: rgba(255,255,255,0.55);
+        border: 1px solid rgba(0,0,0,0.05);
+        border-radius: 12px;
+    }
+    .info-item .key {
+        font-size: 11px;
+        color: var(--text-2);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+    .info-item .val {
+        font-family: var(--mono);
+        font-size: 13px;
+        word-break: break-all;
+        color: var(--text);
+    }
+
+    h2 {
+        font-size: 17px;
+        font-weight: 600;
+        letter-spacing: -0.3px;
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .section-title-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .section-title-row h2 { margin-bottom: 0; }
+
+    .loading-spin {
+        display: inline-block;
+        width: 14px; height: 14px;
+        border: 2px solid rgba(0,0,0,0.15);
+        border-top-color: var(--blue);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+    <!-- HEADER -->
+    <div class="panel">
+        <h1>🧪 Console de Diagnóstico</h1>
+        <p class="subtitle">Verifica conexão, tabela, policies e dados do Supabase — em tempo real.</p>
+
+        <div class="status-bar">
+            <span class="status-chip" id="chip-env"><span class="dot"></span> Ambiente</span>
+            <span class="status-chip" id="chip-config"><span class="dot"></span> Configuração</span>
+            <span class="status-chip" id="chip-conn"><span class="dot"></span> Conexão</span>
+            <span class="status-chip" id="chip-table"><span class="dot"></span> Tabela</span>
+            <span class="status-chip" id="chip-insert"><span class="dot"></span> Insert</span>
+            <span class="status-chip" id="chip-select"><span class="dot"></span> Select</span>
+        </div>
+
+        <div class="actions">
+            <button class="btn" id="run-all">▶ Rodar todos os testes</button>
+            <button class="btn btn-ghost" id="clear-log">Limpar log</button>
+            <button class="btn btn-ghost" id="copy-log">Copiar log</button>
+        </div>
+    </div>
+
+    <!-- CHECKS -->
+    <div class="panel">
+        <h2>📋 Resultado das verificações</h2>
+        <div class="checks" id="checks">
+            <div class="check-item"><div class="icon">?</div><span class="label">Aguardando testes...</span></div>
+        </div>
+    </div>
+
+    <!-- INFO -->
+    <div class="panel">
+        <h2>🌐 Informações do ambiente</h2>
+        <div class="info-grid" id="info-grid"></div>
+    </div>
+
+    <!-- DADOS RETORNADOS -->
+    <div class="panel">
+        <div class="section-title-row">
+            <h2>🗃️ Dados retornados da tabela</h2>
+            <span class="subtitle" style="margin:0" id="row-count">0 registros</span>
+        </div>
+        <div class="terminal" id="data-view" style="max-height: 260px; color: #a7f3d0;">
+            <div style="color:#6b7280;">Nenhuma consulta realizada ainda.</div>
+        </div>
+    </div>
+
+    <!-- LOG -->
+    <div class="panel">
+        <div class="section-title-row">
+            <h2>📜 Log em tempo real</h2>
+            <span class="subtitle" style="margin:0" id="log-count">0 linhas</span>
+        </div>
+        <div class="terminal" id="terminal"></div>
+    </div>
+
+</div>
+
+<script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    // =====================================================
+    // ⚙️ CONFIGURAÇÃO — EDITE AQUI SE PRECISAR
+    // =====================================================
+    const SUPABASE_URL = 'https://rqeakuvigmxtssadmdov.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_B7R-o2Ekd3X6N2fpMgr9PQ_UPZwbmKk';
+    const TABLE_NAME = 'feedbacks';
+    // =====================================================
+
+    const terminal = document.getElementById('terminal');
+    const checksEl = document.getElementById('checks');
+    const infoGrid = document.getElementById('info-grid');
+    const dataView = document.getElementById('data-view');
+    const rowCount = document.getElementById('row-count');
+    const logCount = document.getElementById('log-count');
+
+    let logLines = 0;
+
+    function log(tag, msg) {
+        const t = new Date().toLocaleTimeString('pt-BR', { hour12: false });
+        const line = document.createElement('div');
+        line.className = 'log-line';
+        line.innerHTML = `
+            <span class="log-time">${t}</span>
+            <span class="log-tag ${tag}">${tag.toUpperCase()}</span>
+            <span class="log-msg">${msg}</span>
+        `;
+        terminal.appendChild(line);
+        terminal.scrollTop = terminal.scrollHeight;
+        logLines++;
+        logCount.textContent = `${logLines} linha${logLines > 1 ? 's' : ''}`;
+        // também manda pro console nativo
+        const native = { ok: console.log, info: console.info, warn: console.warn, error: console.error, data: console.log }[tag] || console.log;
+        native(`[${tag}]`, msg.replace(/<[^>]+>/g, ''));
+    }
+
+    function setCheck(id, state, label, detail = '') {
+        const chip = document.getElementById(`chip-${id}`);
+        if (chip) {
+            chip.classList.remove('ok', 'warn', 'error', 'run');
+            if (state) chip.classList.add(state);
+        }
+        // linha da seção de checks
+        const map = {
+            env: 'Ambiente',
+            config: 'Configuração do Supabase',
+            conn: 'Conexão com o Supabase',
+            table: `Tabela "${TABLE_NAME}" existe`,
+            insert: 'INSERT (enviar feedback)',
+            select: 'SELECT (ler feedbacks)',
+        };
+        // procurar/atualizar
+        let item = document.querySelector(`.check-item[data-id="${id}"]`);
+        if (!item) {
+            item = document.createElement('div');
+            item.className = 'check-item';
+            item.dataset.id = id;
+            checksEl.appendChild(item);
+        }
+        const iconMap = { ok: '✓', warn: '!', error: '✕', run: '⋯', null: '?' };
+        const icon = iconMap[state] ?? '?';
+        item.className = 'check-item' + (state ? ` ${state}` : '');
+        item.innerHTML = `
+            <div class="icon">${state === 'run' ? '<span class="loading-spin"></span>' : icon}</div>
+            <span class="label">${label || map[id]}</span>
+            <span class="detail">${detail}</span>
+        `;
+    }
+
+    function addInfo(key, value) {
+        const el = document.createElement('div');
+        el.className = 'info-item';
+        el.innerHTML = `<div class="key">${key}</div><div class="val">${value}</div>`;
+        infoGrid.appendChild(el);
+    }
+
+    async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    // =====================================================
+    // TESTE 1 — AMBIENTE
+    // =====================================================
+    async function testEnv() {
+        setCheck('env', 'run');
+        log('info', 'Verificando ambiente do navegador...');
+        await sleep(200);
+
+        addInfo('URL da página', window.location.href);
+        addInfo('Origem', window.location.origin);
+        addInfo('Protocolo', window.location.protocol);
+        addInfo('Navegador', navigator.userAgent.split(') ')[0].split(' (')[0]);
+        addInfo('Idioma', navigator.language);
+        addInfo('Online', navigator.onLine ? '✅ sim' : '❌ não');
+        addInfo('Data/hora', new Date().toLocaleString('pt-BR'));
+
+        let state = 'ok', detail = '';
+        if (!navigator.onLine) {
+            state = 'error';
+            detail = 'sem internet';
+            log('error', '❌ Você está offline. Conecte-se à internet.');
+        } else {
+            log('ok', `Ambiente OK · ${window.location.origin}`);
+        }
+        setCheck('env', state, undefined, detail);
+    }
+
+    // =====================================================
+    // TESTE 2 — CONFIGURAÇÃO
+    // =====================================================
+    async function testConfig() {
+        setCheck('config', 'run');
+        log('info', 'Validando URL e chave do Supabase...');
+        await sleep(250);
+
+        addInfo('SUPABASE_URL', SUPABASE_URL);
+        addInfo('SUPABASE_KEY', SUPABASE_KEY.slice(0, 24) + '…' + SUPABASE_KEY.slice(-6));
+        addInfo('Tabela alvo', TABLE_NAME);
+
+        const urlOk = /^https:\/\/[a-z0-9]+\.supabase\.co\/?$/.test(SUPABASE_URL);
+        const keyOk = SUPABASE_KEY && SUPABASE_KEY.length > 20;
+
+        if (!urlOk) {
+            log('error', `❌ SUPABASE_URL inválida: <span class="value">${SUPABASE_URL}</span>`);
+            log('warn', 'A URL deve ser algo como <span class="value">https://xxxxx.supabase.co</span> (sem <span class="value">/rest/v1/</span>).');
+            setCheck('config', 'error', undefined, 'URL inválida');
+            return false;
+        }
+        if (!keyOk) {
+            log('error', '❌ SUPABASE_KEY parece inválida ou ausente.');
+            setCheck('config', 'error', undefined, 'key inválida');
+            return false;
+        }
+
+        log('ok', 'Configuração válida. URL e chave com formato correto.');
+        setCheck('config', 'ok', undefined, 'formato OK');
+        return true;
+    }
+
+    // =====================================================
+    // TESTE 3 — CONEXÃO
+    // =====================================================
+    let supabase;
+    async function testConnection() {
+        setCheck('conn', 'run');
+        log('info', 'Testando conexão com o Supabase...');
+
+        try {
+            supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+            // tenta fazer um HEAD request na API REST
+            const url = `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/`;
+            const t0 = performance.now();
+
+            const res = await fetch(url, {
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                },
+            });
+            const ms = Math.round(performance.now() - t0);
+
+            addInfo('Status HTTP', `${res.status} ${res.statusText}`);
+            addInfo('Latência', `${ms} ms`);
+
+            if (!res.ok && res.status !== 200) {
+                log('warn', `⚠️ Resposta HTTP ${res.status} (pode ser normal).`);
+            } else {
+                log('ok', `Conectado ao Supabase em <span class="ok-text">${ms}ms</span>.`);
+            }
+            setCheck('conn', 'ok', undefined, `${ms}ms`);
+            return true;
+        } catch (e) {
+            log('error', `❌ Falha ao conectar: <span class="err-text">${e.message}</span>`);
+            log('warn', 'Verifique sua internet e se a URL do projeto está correta.');
+            setCheck('conn', 'error', undefined, e.message.slice(0, 40));
+            return false;
+        }
+    }
+
+    // =====================================================
+    // TESTE 4 — TABELA EXISTE
+    // =====================================================
+    async function testTable() {
+        setCheck('table', 'run');
+        log('info', `Verificando se a tabela "${TABLE_NAME}" existe...`);
+
+        const { data, error, status } = await supabase
+            .from(TABLE_NAME)
+            .select('*', { count: 'exact', head: true });
+
+        if (error) {
+            log('error', `❌ Erro: <span class="err-text">${error.message}</span>`);
+            if (error.code) log('data', `Código: <span class="value">${error.code}</span>`);
+            if (error.message.includes('does not exist') || error.code === '42P01') {
+                log('warn', '👉 A tabela não existe. Rode o SQL de criação no SQL Editor do Supabase.');
+            } else if (error.message.includes('permission') || error.code === '42501') {
+                log('warn', '👉 Permissão negada. Verifique se a policy de SELECT foi criada.');
+            }
+            setCheck('table', 'error', undefined, error.code || 'erro');
+            return false;
+        }
+
+        const count = data?.length ?? 0;
+        log('ok', `Tabela encontrada. Ela possui registros acessíveis.`);
+        setCheck('table', 'ok', undefined, 'existe');
+        return true;
+    }
+
+    // =====================================================
+    // TESTE 5 — INSERT
+    // =====================================================
+    async function testInsert() {
+        setCheck('insert', 'run');
+        log('info', 'Testando INSERT (envio de feedback de teste)...');
+
+        const testPayload = {
+            name: '[TESTE AUTO]',
+            email: null,
+            message: 'Este é um feedback de teste gerado pelo console em ' + new Date().toISOString(),
+        };
+
+        const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .insert([testPayload])
+            .select();
+
+        if (error) {
+            log('error', `❌ Erro ao inserir: <span class="err-text">${error.message}</span>`);
+            if (error.code) log('data', `Código: <span class="value">${error.code}</span>`);
+            if (error.message.includes('permission') || error.code === '42501') {
+                log('warn', '👉 A policy de INSERT provavelmente não foi criada.');
+                log('warn', 'Rode: <span class="value">create policy "Permitir inserção pública" on public.feedbacks for insert to anon with check (true);</span>');
+            } else if (error.message.includes('does not exist')) {
+                log('warn', '👉 A tabela não existe ainda.');
+            }
+            setCheck('insert', 'error', undefined, error.code || 'erro');
+            return null;
+        }
+
+        log('ok', `Feedback de teste inserido com sucesso.`);
+        log('data', `ID gerado: <span class="value">${data[0].id}</span>`);
+        setCheck('insert', 'ok', undefined, `id ${data[0].id}`);
+        return data[0].id;
+    }
+
+    // =====================================================
+    // TESTE 6 — SELECT
+    // =====================================================
+    async function testSelect() {
+        setCheck('select', 'run');
+        log('info', 'Testando SELECT (listagem de feedbacks)...');
+
+        const { data, error } = await supabase
+            .from(TABLE_NAME)
+            .select('id, name, email, message, created_at')
+            .order('created_at', { ascending: false })
+            .limit(20);
+
+        if (error) {
+            log('error', `❌ Erro ao ler: <span class="err-text">${error.message}</span>`);
+            if (error.message.includes('permission') || error.code === '42501') {
+                log('warn', '👉 A policy de SELECT provavelmente não foi criada.');
+                log('warn', 'Rode: <span class="value">create policy "Permitir leitura pública" on public.feedbacks for select to anon using (true);</span>');
+            }
+            setCheck('select', 'error', undefined, error.code || 'erro');
+            return null;
+        }
+
+        rowCount.textContent = `${data.length} registro${data.length !== 1 ? 's' : ''}`;
+        dataView.innerHTML = data.length
+            ? data.map(r => `<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+                <span style="color:#93c5fd;">#${r.id}</span>
+                <span style="color:#9ca3af;"> · ${new Date(r.created_at).toLocaleString('pt-BR')}</span>
+                <span style="color:#4ade80;"> · ${escapeHtml(r.name || 'Anônimo')}</span>
+                <div style="color:#e5e7eb;margin-top:4px;">${escapeHtml(r.message)}</div>
+              </div>`).join('')
+            : '<div style="color:#6b7280;">A tabela está vazia.</div>';
+
+        log('ok', `Leitura OK · ${data.length} registro(s) retornado(s).`);
+        setCheck('select', 'ok', undefined, `${data.length} linhas`);
+        return data;
+    }
+
+    function escapeHtml(s) {
+        return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    // =====================================================
+    // LIMPAR FEEDBACK DE TESTE
+    // =====================================================
+    async function cleanupTest(id) {
+        if (!id) return;
+        log('info', `🧹 Limpando feedback de teste #${id}...`);
+        const { error } = await supabase.from(TABLE_NAME).delete().eq('id', id);
+        if (error) {
+            log('warn', `Não foi possível apagar (normal, DELETE não é permitido pela API pública). Apague manualmente no Supabase.`);
+        } else {
+            log('ok', 'Feedback de teste removido.');
+        }
+    }
+
+    // =====================================================
+    // ORQUESTRADOR
+    // =====================================================
+    async function runAll() {
+        const btn = document.getElementById('run-all');
+        btn.disabled = true;
+        log('info', '════════ Iniciando bateria de testes ════════');
+
+        await testEnv();
+        const cfgOk = await testConfig();
+        if (!cfgOk) { btn.disabled = false; return; }
+
+        const connOk = await testConnection();
+        if (!connOk) { btn.disabled = false; return; }
+
+        const tblOk = await testTable();
+        if (!tblOk) { btn.disabled = false; log('error', '🛑 Testes de insert/select cancelados (tabela indisponível).'); return; }
+
+        const testId = await testInsert();
+        await testSelect();
+        // não apaga automaticamente — deixa o usuário ver
+        // await cleanupTest(testId);
+
+        log('info', '════════ Testes finalizados ════════');
+        btn.disabled = false;
+    }
+
+    // =====================================================
+    // BOTÕES
+    // =====================================================
+    document.getElementById('run-all').addEventListener('click', runAll);
+
+    document.getElementById('clear-log').addEventListener('click', () => {
+        terminal.innerHTML = '';
+        logLines = 0;
+        logCount.textContent = '0 linhas';
+    });
+
+    document.getElementById('copy-log').addEventListener('click', async () => {
+        const text = [...terminal.querySelectorAll('.log-line')]
+            .map(l => l.textContent.replace(/\s+/g, ' ').trim())
+            .join('\n');
+        try {
+            await navigator.clipboard.writeText(text);
+            log('ok', 'Log copiado para a área de transferência.');
+        } catch {
+            log('warn', 'Não foi possível copiar automaticamente.');
+        }
+    });
+
+    // auto-run
+    window.addEventListener('load', () => setTimeout(runAll, 400));
+</script>
+
+</body>
+</html>
